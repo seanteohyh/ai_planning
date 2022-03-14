@@ -123,8 +123,8 @@ class Vehicle(object):
         self.item_capacity = item_capacity
         # travel time of the vehicle
         self.travel_turn = 0
-        # all the nodes including warehouse, customers, or waiting point visited by the vehicle
-        self.space_time = [self.start_node.x, self.start_node.y, 0] # start from warehouse
+        # all the (points, time) including warehouse, customers, or waiting point visited by the vehicle::[(x1,y1,t1), (x2,y2,t2)]
+        self.visited_points = [(self.start_node.x, self.start_node.y, 0)] # start from warehouse
         
         
 class Truck(Vehicle):
@@ -144,7 +144,7 @@ class Truck(Vehicle):
     
         super(Truck, self).__init__(id, start_node, speed_factor, item_capacity)
     def __str__(self):
-        return 'Truck id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, space_time: {}'.format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.space_time)
+        return 'Truck id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, visited_points: {}'.format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.visited_points)
         
         
 class Drone(Vehicle):
@@ -174,8 +174,8 @@ class Drone(Vehicle):
         self.consumption_rate = consumption_rate
         self.charging_speed = charging_speed
     def __str__(self):
-        return 'Drone id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, space_time: {}, battery_capacity: {}, consumption_rate: {}, charging_speed: {}'\
-            .format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.space_time, self.battery_capacity, self.consumption_rate, self.charging_speed)
+        return 'Drone id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, visited_points: {}, battery_capacity: {}, consumption_rate: {}, charging_speed: {}'\
+            .format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.visited_points, self.battery_capacity, self.consumption_rate, self.charging_speed)
     
         
 class DVRP(object):
