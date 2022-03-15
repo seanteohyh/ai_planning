@@ -107,7 +107,7 @@ class Customer(Node):
                 x coordinate of the customer
             y::int
                 y coordinate of the customer
-            demand::float
+            demand::int
                 demand of the customer
         '''
         super(Customer, self).__init__(id, type, x, y)
@@ -127,9 +127,9 @@ class Vehicle(object):
                 id of the vehicle
             start_node::Node
                 starting node of the vehicle
-            speed_factor::float
+            speed_factor::int
                 speed factor of the vehicle
-            item_capacity::float
+            item_capacity::int
                 item capacity of the vehicle
         '''
         self.id = id
@@ -151,9 +151,9 @@ class Truck(Vehicle):
                 id of the truck
             start_node::Node
                 starting node of the truck
-            speed_factor::float
+            speed_factor::int
                 speed factor of the truck
-            item_capacity::float
+            item_capacity::int
                 item capacity of the truck
         '''
         super(Truck, self).__init__(id, start_node, speed_factor, item_capacity)
@@ -173,22 +173,23 @@ class Drone(Vehicle):
                 id of the drone
             start_node::Node
                 starting node of the drone
-            speed_factor::float
+            speed_factor::int
                 speed factor of the drone
-            item_capacity::float
+            item_capacity::int
                 item capacity of the drone
-            battery_capacity::float
+            battery_capacity::int
                  battery capacity of the drone   
-            consumption_rate::float
-                 consumption rate of the drone
-            charging_speed::str
-                 charging speed of the drone
+            consumption_rate::int
+                 consumption rate of the drone: how much battery level consumed per grid moved
+            charging_speed::int
+                 charging speed of the drone: how much battery level recovered per turn charged
         '''
    
         super(Drone, self).__init__(id, start_node, speed_factor, item_capacity)        
         self.battery_capacity = battery_capacity
         self.consumption_rate = consumption_rate
         self.charging_speed = charging_speed
+        self.battery_level = battery_capacity
         self.on_truck = False
 
     def __str__(self):
