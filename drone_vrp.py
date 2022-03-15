@@ -39,8 +39,23 @@ class Parser(object):
                                    int(drone['speed_factor']), int(drone['item_capacity']), int(drone['battery_capacity']),
                                    int(drone['consumption_rate']), int(drone['charging_speed'])))
         
+class Point(object):
 
-class Node(object):
+    def __init__(self, x, y):
+        '''Initialize a point
+        Args:
+            x::int
+                x coordinate of the point
+            y::int
+                y coordinate of the point
+        '''
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return 'Point, x: {}, y: {}'.format(self.x, self.y)
+
+class Node(Point):
     
     def __init__(self, id, type, x, y):
         '''Initialize a node
@@ -49,15 +64,14 @@ class Node(object):
                 id of the node
             type::int
                 0 for warehouses, 1 for customer
-            x::float
+            x::int
                 x coordinate of the node
-            y::float
+            y::int
                 y coordinate of the node
         '''
+        super(Node, self).__init__(x, y)
         self.id = id
         self.type = type
-        self.x = x
-        self.y = y
 
     def __str__(self):
         return 'Node id: {}, type: {}, x: {}, y: {}'.format(self.id, self.type, self.x, self.y)
@@ -72,9 +86,9 @@ class Warehouse(Node):
                 id of the warehouse
             type::int
                 0 for warehouse
-            x::float
+            x::int
                 x coordinate of the warehouse
-            y::float
+            y::int
                 y coordinate of the warehouse
         '''
         super(Warehouse, self).__init__(id, type, x, y)
@@ -89,18 +103,19 @@ class Customer(Node):
                 id of the customer
             type::int
                 1 for customer
-            x::float
+            x::int
                 x coordinate of the customer
-            y::float
+            y::int
                 y coordinate of the customer
             demand::float
                 demand of the customer
         '''
         super(Customer, self).__init__(id, type, x, y)
         self.demand = demand
+        self.turn_served = 0
         
     def __str__(self):
-        return 'Node id: {}, type: {}, x: {}, y: {}, demand: {}'.format(self.id, self.type, self.x, self.y,self.demand)
+        return 'Node id: {}, type: {}, x: {}, y: {}, demand: {}, turn_served: {}'.format(self.id, self.type, self.x, self.y, self.demand, self.turn_served)
         
         
 class Vehicle(object):
@@ -141,8 +156,10 @@ class Truck(Vehicle):
             item_capacity::float
                 item capacity of the truck
         '''
-    
         super(Truck, self).__init__(id, start_node, speed_factor, item_capacity)
+        self.wait = False
+
+
     def __str__(self):
         return 'Truck id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, visited_points: {}'.format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.visited_points)
         
@@ -168,11 +185,12 @@ class Drone(Vehicle):
                  charging speed of the drone
         '''
    
-        super(Drone, self).__init__(id, start_node, speed_factor, item_capacity)       
-        
+        super(Drone, self).__init__(id, start_node, speed_factor, item_capacity)        
         self.battery_capacity = battery_capacity
         self.consumption_rate = consumption_rate
         self.charging_speed = charging_speed
+        self.on_truck = False
+
     def __str__(self):
         return 'Drone id: {}, start_node: {}, speed_factor: {}, item_capacity: {}, visited_points: {}, battery_capacity: {}, consumption_rate: {}, charging_speed: {}'\
             .format(self.id, self.start_node.id, self.speed_factor, self.item_capacity, self.visited_points, self.battery_capacity, self.consumption_rate, self.charging_speed)
