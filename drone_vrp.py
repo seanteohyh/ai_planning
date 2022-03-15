@@ -92,6 +92,19 @@ class Warehouse(Node):
                 y coordinate of the warehouse
         '''
         super(Warehouse, self).__init__(id, type, x, y)
+
+            
+    def replenish_item(vehicle,x):
+        '''Replenish drone items to item level x
+        Args:
+            vehicle:: truck/drone object to receive items
+            x::int 
+                target inventory level to fulfill to
+        '''
+        
+        assert(x<= vehicle.item_capacity)  
+        vehicle.item = x
+
         
         
 class Customer(Node):
@@ -246,6 +259,25 @@ class Truck(Vehicle):
             px, py = self.find_point_at_t(current_t+1)
             drone.travel_to(Point(px, py), diagonal_first=True)
         drone.on_truck = False
+
+    def replenish_drone(self, drone, x):
+        '''Replenish drone items to item level x
+        Args:
+            drone:: drone object
+                the drone to charge
+            x::int 
+                target inventory level to replenish to 
+        '''
+        
+        assert(x <= drone.item_capacity)
+        if drone.items >= x:
+            amt = 0
+        else:
+            amt = x - drone.items
+        assert(self.items >= amt)
+        self.items -= amt
+        drone.items += amt
+    
 
     def wait(self, x, t):
         '''at turn t, wait at current point for x turns

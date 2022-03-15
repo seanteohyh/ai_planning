@@ -40,6 +40,14 @@ if __name__ == '__main__':
         y=3,
         demand=2
     )
+
+    customer1 = Customer(
+    id=1,
+    type=1,
+    x=2,
+    y=2,
+    demand=1
+    )
     
     truck0 = Truck(
         id=0,
@@ -63,23 +71,22 @@ if __name__ == '__main__':
     print(truck0)
 
     print(drone0)
-    drone0.travel_to(Point(2,3), diagonal_first=True)
+    drone0.travel_to(Point(2,2), diagonal_first=True)
     print(drone0)
+    drone0.serve_customer(customer1)
+    print(drone0.items)
     drone0.travel_to(Point(1,3), diagonal_first=True)
     print(drone0)
 
 
+
     # Now truck and drone at same point
     truck0.charge_to(drone0,5)
-    print(drone0)
+    truck0.replenish_drone(drone0,1)
+    print(drone0.items)
 
     truck0.serve_customer(customer0)
     print(truck0.items)
-
-    drone0.serve_customer(customer0)
-    print(drone0.items)
-
-
 
 
 
