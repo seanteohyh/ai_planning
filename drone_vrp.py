@@ -1,5 +1,9 @@
 import configparser
 import json
+import copy
+from scipy.spatial.distance import cdist, pdist
+import numpy as np
+
 
 
 class Parser(object):
@@ -15,6 +19,7 @@ class Parser(object):
         self.customers = []
         self.trucks = []
         self.drones = []
+        self.map_size = json.loads(self.config['map_size'])
               
         self.ini_nodes()
         self.set_trucks()
@@ -72,6 +77,20 @@ class Node(Point):
         super(Node, self).__init__(x, y)
         self.id = id
         self.type = type
+    
+    
+    def get_nearest_node(self, nodes):
+        '''Find the nearest node in the list of nodes
+        Args:
+            nodes::[Node]
+                a list of nodes
+        Returns:
+            node::Node
+                the nearest node found
+        '''
+        dis = [cdist([[self.x, self.y]], [[node.x, node.y]], 'cityblock') for node in nodes]
+        idx = np.argmin(dis)
+        return nodes[idx]
 
     def __str__(self):
         return 'Node id: {}, type: {}, x: {}, y: {}'.format(self.id, self.type, self.x, self.y)
@@ -162,7 +181,7 @@ class Vehicle(object):
             customer::Customer object
         '''
         current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
-        assert(self.items > customer.demand)
+        assert(self.items >= customer.demand)
         assert(current_x == customer.x)
         assert(current_y == customer.y)
         self.items -= customer.demand
@@ -335,7 +354,7 @@ class Drone(Vehicle):
             point::Point object
                 a point or customer or warehouse destination
         '''
-        current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
+        current_x, current_y, current_t = self.visited_points[-1]
         direct_diag = (abs(point.x-current_x) == abs(point.y-current_y))
         while not direct_diag:
             if abs(point.x-current_x) > abs(point.y-current_y):
@@ -354,7 +373,7 @@ class Drone(Vehicle):
             point::Point object
                 a point or customer or warehouse destination
         '''
-        current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
+        current_x, current_y, current_t = self.visited_points[-1]
         direct_line = (point.x == current_x or point.y == current_y)
         while not direct_line:
             current_x += 1 if current_x < point.x else -1
@@ -387,7 +406,7 @@ class Drone(Vehicle):
         
 class DVRP(object):
     
-    def __init__(self, warehouses, customers, trucks, drones):
+    def __init__(self, warehouses, customers, trucks, drones, map_size):
         '''Initialize the DVRP state
         Args:
             warehouses::[Warehouses]
@@ -398,9 +417,45 @@ class DVRP(object):
                 trucks of the instance
             drones::[Drones]
                 drones of the instance
+            map_size::[Drones]
+                drones of the instance    
         '''
 
         self.warehouses = warehouses
         self.customers = customers
         self.trucks = trucks
         self.drones = drones
+        self.map_size = map_size
+        
+        # record the all the customers who have been visited by all the vehicles, eg. [Customer1, Customer2, ..., Customer7, Customer8]
+        self.customer_visited = []
+        # record the unvisited customers, eg. [Customer9, Customer10]
+        self.customer_unvisited = copy.deepcopy(customers)
+        
+    def initialize(self):
+        ''' Initialize the state with construction heuristic
+        Evenly distribute customers to each truck if sufficient capacity, restock otherwise
+        Truck returns to starting warehouse after all customers served
+        Returns:
+            objective::float
+                objective value of the state
+        '''
+        while self.customer_unvisited != []:
+            for t in self.trucks:
+                cust = self.customer_unvisited[0]
+                if t.items >= cust.demand:
+                    t.travel_to(Point(cust.x, cust.y), False)
+                    t.serve_customer(cust)
+                    self.customer_visited.append(self.customer_unvisited.remove(cust))
+                else:
+                    t.travel_to(Point(t.start_node.x, t.start_node.y), False)
+                    t.items = t.item_capacity
+        for t in self.trucks:
+            t.travel_to(Point(t.start_node.x, t.start_node.y), False)
+        return self.objective()
+        
+    def objective(self):
+        ''' Calculate the objective value of the state
+        Return turns needed to fulfil customer orders and for vehicles to travel back to warehouse
+        '''
+        return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
