@@ -431,6 +431,74 @@ class DVRP(object):
         self.customer_visited = []
         # record the unvisited customers, eg. [Customer9, Customer10]
         self.customer_unvisited = copy.deepcopy(customers)
+
+    def charge_required(source, dest):
+        '''Check charge or time required to travel from one point to another
+            Args:
+                source::Tuple (x,y)
+                    (x,y) coordinate of starting point
+                dest::Tuple (x,y)
+                    (x,y) coordinate of destination point               
+            '''
+        charge_req = 0
+        source_x, source_y = source
+        dest_x, dest_y = dest
+
+        direct_line = (dest_x == source_x or dest_y == source_y)
+        
+        while not direct_line:
+            source_x += 1 if source_x < dest_x else -1
+            source_y += 1 if source_y < dest_y else -1
+            charge_req += 1       
+
+            direct_line = (dest_x== source_x or dest_y == source_y)
+
+        direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))
+        while not direct_diag:
+            if abs(dest_x-source_x) > abs(dest_y-source_y):
+                source_x += 1 if source_x < dest_x else -1
+            else:
+                source_y += 1 if source_y < dest_y else -1     
+            charge_req += 1          
+            direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))    
+
+        return charge_req
+
+    def drone_cust_check(drone, customer, self):
+        '''Check possible charging points for drone after visiting a potential customer
+            Args:
+                drone:: Drone object
+                customer:: Potential customer object
+                dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)              
+        '''
+        x,y,current_t = customer.x, customer.y, drone.visited_points[-1][2]
+        low_x = max(0,x - drone.battery_level)
+        high_x = x+ drone.battery_level
+
+        low_y = max(0,y- drone.battery_level)
+        high_y =y + drone.battery_level   
+        
+        charging_locs = [] #should add a method in dvrp list of all warehouses and truck travelled route then no need keep calc
+        for w in self.warehouses:
+            charging_locs.append((w.x,w.y,-1))
+        for t in self.trucks:
+            for pt in t.visited_points:
+                charging_locs.append((pt[0],pt[1],pt[2]))
+                
+        time_to_cust = charge_required((drone.visited_points[-1][0],drone.visited_points[-1][1]),(x,y))
+
+        possible_pts = []
+        for loc in charging_locs:
+            if loc[2] == -1:
+                if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
+                    possible_pts.append(loc)
+            else:
+                extra_time = charge_required((x,y),(loc[0],loc[1]))
+                if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y) & ((current_t+time_to_cust+extra_time) == loc[2]):
+                    possible_pts.append(loc)
+        return possible_pts
+
+
         
     def initialize(self):
         ''' Initialize the state with construction heuristic
@@ -459,3 +527,136 @@ class DVRP(object):
         Return turns needed to fulfil customer orders and for vehicles to travel back to warehouse
         '''
         return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
+
+
+
+
+# warehouse0 = Warehouse(
+#     id=0,
+#     type=0,
+#     x=4,
+#     y=3
+# )
+
+# warehouse1 = Warehouse(
+#     id=0,
+#     type=0,
+#     x=5,
+#     y=5
+# )
+
+# warehouse2 = Warehouse(
+#     id=0,
+#     type=0,
+#     x=4,
+#     y=8
+# )
+
+
+# customer0 = Customer(
+#     id=0,
+#     type=1,
+#     x=6,
+#     y=3,
+#     demand=3
+# )
+
+# customer1 = Customer(
+#     id=1,
+#     type=1,
+#     x=2,
+#     y=4,
+#     demand=1
+#     )
+
+# customer2 = Customer(
+#     id=1,
+#     type=1,
+#     x=2,
+#     y=5,
+#     demand=1
+#     )
+
+
+# customer3 = Customer(
+#     id=1,
+#     type=1,
+#     x=3,
+#     y=7,
+#     demand=1
+#     )
+
+# customer4 = Customer(
+#     id=1,
+#     type=1,
+#     x=4,
+#     y=7,
+#     demand=1
+#     )
+
+# customer5 = Customer(
+#     id=1,
+#     type=1,
+#     x=6,
+#     y=10,
+#     demand=1
+#     )
+
+
+# customer6 = Customer(
+#     id=1,
+#     type=1,
+#     x=7,
+#     y=11,
+#     demand=1
+#     )
+
+
+# customer7 = Customer(
+#     id=1,
+#     type=1,
+#     x=14,
+#     y=18,
+#     demand=1
+#     )
+
+# truck0 = Truck(
+#     id=0,
+#     start_node=warehouse0,
+#     speed_factor=1,
+#     item_capacity=10
+# )
+
+# drone0 = Drone(
+#     id=0,
+#     start_node=warehouse0,
+#     speed_factor=1,
+#     item_capacity=2,
+#     battery_capacity=7,
+#     consumption_rate=1,
+#     charging_speed=7
+# )
+
+# drone1 = Drone(
+#     id=0,
+#     start_node=warehouse0,
+#     speed_factor=1,
+#     item_capacity=2,
+#     battery_capacity=7,
+#     consumption_rate=1,
+#     charging_speed=7
+# )
+
+# customers = [customer0, customer1, customer2, customer3, customer4, customer5, customer6, customer7]
+# drones = [drone0, drone1]
+# trucks = [truck0]
+# warehouses = [warehouse0, warehouse1, warehouse2]
+# map_size = 99
+
+
+# dvrp = DVRP(warehouses, customers, trucks, drones, map_size)
+
+# dvrp.trucks[0].travel_to(customers[0],0)
+# dvrp.trucks[0].travel_to(customers[7],1)
+
+# drone_cust_check(drones[0],customers[1],dvrp)
