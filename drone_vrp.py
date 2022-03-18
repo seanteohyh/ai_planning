@@ -464,13 +464,15 @@ class DVRP(object):
 
         return charge_req
 
-    def drone_cust_check(drone, customer, self):
+    def drone_cust_check(drone, customer, dvrp, item_or_charge):
         '''Check possible charging points for drone after visiting a potential customer
             Args:
                 drone:: Drone object
                 customer:: Potential customer object
-                dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)              
+                dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)  
+                item_or_change:: binary value, 0 if checking where to replinish item , 1 if checking where to recharge
         '''
+        
         x,y,current_t = customer.x, customer.y, drone.visited_points[-1][2]
         low_x = max(0,x - drone.battery_level)
         high_x = x+ drone.battery_level
@@ -479,9 +481,9 @@ class DVRP(object):
         high_y =y + drone.battery_level   
         
         charging_locs = [] #should add a method in dvrp list of all warehouses and truck travelled route then no need keep calc
-        for w in self.warehouses:
+        for w in dvrp.warehouses:
             charging_locs.append((w.x,w.y,-1))
-        for t in self.trucks:
+        for t in dvrp.trucks:
             for pt in t.visited_points:
                 charging_locs.append((pt[0],pt[1],pt[2]))
                 
@@ -490,14 +492,16 @@ class DVRP(object):
         possible_pts = []
         for loc in charging_locs:
             if loc[2] == -1:
-                if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
-                    possible_pts.append(loc)
+                if item_or_charge == 0:
+                    if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
+                        possible_pts.append(loc)
+                else: 
+                    continue
             else:
                 extra_time = charge_required((x,y),(loc[0],loc[1]))
                 if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y) & ((current_t+time_to_cust+extra_time) == loc[2]):
                     possible_pts.append(loc)
-        return possible_pts
-
+        return possible_pts 
 
         
     def initialize(self):
@@ -659,4 +663,5 @@ class DVRP(object):
 # dvrp.trucks[0].travel_to(customers[0],0)
 # dvrp.trucks[0].travel_to(customers[7],1)
 
-# drone_cust_check(drones[0],customers[1],dvrp)
+# drone_cust_check(drones[0],customers[1],dvrp,1)
+# drone_cust_check(drones[0],customers[1],dvrp,0)
