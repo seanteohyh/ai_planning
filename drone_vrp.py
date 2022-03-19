@@ -1,3 +1,5 @@
+from asyncio.format_helpers import _format_callback_source
+from calendar import c
 import configparser
 import json
 import copy
@@ -180,7 +182,7 @@ class Vehicle(object):
         Args:
             customer::Customer object
         '''
-        current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
+        current_x, current_y, current_t = self.visited_points[-1]
         assert(self.items >= customer.demand)
         assert(current_x == customer.x)
         assert(current_y == customer.y)
@@ -204,6 +206,7 @@ class Truck(Vehicle):
         '''
         super(Truck, self).__init__(id, start_node, speed_factor, item_capacity)
         self.wait = False
+        self.half_turn = True
 
     def find_point_at_t(self, t):
         '''Returns the (x,y) coordinate at time t
@@ -226,9 +229,13 @@ class Truck(Vehicle):
             point::Point object
                 a point or customer or warehouse destination 
         '''
-        current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
+        current_x, current_y, current_t = self.visited_points[-1]
         while current_x != point.x:
-            current_x += 1 if current_x < point.x else -1
+            if self.half_turn:
+                current_x += 1 if current_x < point.x else -1
+                self.half_turn = False
+            else:
+                self.half_turn = True
             current_t += 1
             self.visited_points.append((current_x, current_y, current_t))
             self.travel_turn += 1
@@ -239,9 +246,13 @@ class Truck(Vehicle):
             point::Point object
                 a point or customer or warehouse destination
         '''
-        current_x, current_y, current_t = self.visited_points[len(self.visited_points)-1]
+        current_x, current_y, current_t = self.visited_points[-1]
         while current_y != point.y:
-            current_y += 1 if current_y < point.y else -1
+            if self.half_turn:
+                current_y += 1 if current_y < point.y else -1
+                self.half_turn = False
+            else:
+                self.half_turn = True
             current_t += 1
             self.visited_points.append((current_x, current_y, current_t))
             self.travel_turn += 1
@@ -274,9 +285,9 @@ class Truck(Vehicle):
             drone.battery_level += drone.charging_speed
             if drone.battery_level > drone.battery_capacity:
                 drone.battery_level = drone.battery_capacity
-            _, _, current_t = drone.visited_points[len(drone.visited_points)-1]
+            _, _, current_t = drone.visited_points[-1]
             px, py = self.find_point_at_t(current_t+1)
-            drone.travel_to(Point(px, py), diagonal_first=True)
+            drone.travel_on_truck(Point(px, py), current_t+1)
         drone.on_truck = False
 
     def replenish_drone(self, drone, x):
@@ -399,6 +410,99 @@ class Drone(Vehicle):
             self.travel_straight(point)
             self.travel_diag(point)      
 
+    def travel_on_truck(self, point, t):
+        '''Point travelled while charging on truck
+        Args:
+            point::Point object
+                the point when drone finish charging
+            t::int
+                the turn when drone finish charging
+        '''
+        self.visited_points.append((point.x, point.y, t))
+
+    def check_cust(self, customer, consec_checks=False):
+        '''Check if route to customer is feasible
+        Args:
+            customer::Customer object
+                the customer we want the drone to travel to
+            consec_checks::Boolean
+                True if we want to continue checking route to other points, False otherwise
+        Returns:
+            checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
+        '''
+        checker_drone = copy.deepcopy(self)
+        checker_drone.travel_to(customer, diagonal_first=True)
+        if consec_checks:
+            return checker_drone
+        elif checker_drone.battery_level < 0:
+            return False
+        else:
+            return True
+
+    def check_wh(self, warehouses, consec_checks=False):
+        '''Check if route to any warehose is feasible
+        Args:
+            warehouses::List of warehouse objects
+                the list of warehouses we want to check if drone route is feasible to
+            consec_checks::Boolean
+                True if we want to continue checking route to other points, False otherwise
+        Returns:
+            checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
+        '''
+        min_turn = 1e3
+        target_wh = None
+        for wh in warehouses:
+            checker_drone = copy.deepcopy(self) 
+            checker_drone.travel_to(wh, diagonal_first=True)
+            if checker_drone.battery_level >= 0:
+                if not consec_checks:
+                    return True
+                if checker_drone.travel_turn < min_turn:
+                    min_turn = checker_drone.travel_turn
+                    target_wh = wh
+        if not consec_checks:
+            return False
+        else:
+            checker_drone = copy.deepcopy(self) 
+            checker_drone.travel_to(target_wh, diagonal_first=True)
+            return checker_drone
+
+    def check_truck(self, trucks, consec_checks=False):
+        '''Check if route to any trucks is feasible
+        Args:
+            trucks::List of truck objects
+                the list of trucks we want to check if drone route is feasible to
+            consec_checks::Boolean
+                True if we want to continue checking route to other points, False otherwise
+        Returns:
+            checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
+        '''
+        min_turn = 1e3
+        target_truck = None
+        target_point = None
+        for truck in trucks:
+            for point in truck.visited_points:
+                if point[2] <= self.travel_turn:
+                    continue
+                checker_drone = copy.deepcopy(self) 
+                checker_drone.travel_to(Point(point[0], point[1]), diagonal_first=True)
+                if checker_drone.visited_points[-1][2] == point[2] and checker_drone.battery_level >= 0:
+                    if not consec_checks:
+                        return True
+                    if checker_drone.travel_turn < min_turn:
+                        min_turn = checker_drone.travel_turn
+                        target_truck = truck 
+                        target_point = Point(point[0], point[1])
+        if not consec_checks:
+            return False
+        else:
+            checker_drone = copy.deepcopy(self) 
+            checker_drone.travel_to(target_point, diagonal_first=True)
+            target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
+            return checker_drone
+
+
+
     def __str__(self):
         return 'Drone id: {}, battery_level: {}, visited_points: {}'\
             .format(self.id, self.battery_level, self.visited_points)
@@ -464,44 +568,44 @@ class DVRP(object):
 
         return charge_req
 
-    def drone_cust_check(drone, customer, dvrp, item_or_charge):
-        '''Check possible charging points for drone after visiting a potential customer
-            Args:
-                drone:: Drone object
-                customer:: Potential customer object
-                dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)  
-                item_or_change:: binary value, 0 if checking where to replinish item , 1 if checking where to recharge
-        '''
+    # def drone_cust_check(drone, customer, dvrp, item_or_charge):
+    #     '''Check possible charging points for drone after visiting a potential customer
+    #         Args:
+    #             drone:: Drone object
+    #             customer:: Potential customer object
+    #             dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)  
+    #             item_or_change:: binary value, 0 if checking where to replinish item , 1 if checking where to recharge
+    #     '''
         
-        x,y,current_t = customer.x, customer.y, drone.visited_points[-1][2]
-        low_x = max(0,x - drone.battery_level)
-        high_x = x+ drone.battery_level
+    #     x,y,current_t = customer.x, customer.y, drone.visited_points[-1][2]
+    #     low_x = max(0,x - drone.battery_level)
+    #     high_x = x+ drone.battery_level
 
-        low_y = max(0,y- drone.battery_level)
-        high_y =y + drone.battery_level   
+    #     low_y = max(0,y- drone.battery_level)
+    #     high_y =y + drone.battery_level   
         
-        charging_locs = [] #should add a method in dvrp list of all warehouses and truck travelled route then no need keep calc
-        for w in dvrp.warehouses:
-            charging_locs.append((w.x,w.y,-1))
-        for t in dvrp.trucks:
-            for pt in t.visited_points:
-                charging_locs.append((pt[0],pt[1],pt[2]))
+    #     charging_locs = [] #should add a method in dvrp list of all warehouses and truck travelled route then no need keep calc
+    #     for w in dvrp.warehouses:
+    #         charging_locs.append((w.x,w.y,-1))
+    #     for t in dvrp.trucks:
+    #         for pt in t.visited_points:
+    #             charging_locs.append((pt[0],pt[1],pt[2]))
                 
-        time_to_cust = charge_required((drone.visited_points[-1][0],drone.visited_points[-1][1]),(x,y))
+    #     time_to_cust = charge_required((drone.visited_points[-1][0],drone.visited_points[-1][1]),(x,y))
 
-        possible_pts = []
-        for loc in charging_locs:
-            if loc[2] == -1:
-                if item_or_charge == 0:
-                    if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
-                        possible_pts.append(loc)
-                else: 
-                    continue
-            else:
-                extra_time = charge_required((x,y),(loc[0],loc[1]))
-                if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y) & ((current_t+time_to_cust+extra_time) == loc[2]):
-                    possible_pts.append(loc)
-        return possible_pts 
+    #     possible_pts = []
+    #     for loc in charging_locs:
+    #         if loc[2] == -1:
+    #             if item_or_charge == 0:
+    #                 if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
+    #                     possible_pts.append(loc)
+    #             else: 
+    #                 continue
+    #         else:
+    #             extra_time = charge_required((x,y),(loc[0],loc[1]))
+    #             if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y) & ((current_t+time_to_cust+extra_time) == loc[2]):
+    #                 possible_pts.append(loc)
+    #     return possible_pts 
 
         
     def initialize(self):

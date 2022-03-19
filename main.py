@@ -99,93 +99,103 @@ if __name__ == '__main__':
     # for d in dvrp.drones:
     #     print(d)
 
-    # warehouse0 = Warehouse(
-    #     id=0,
-    #     type=0,
-    #     x=0,
-    #     y=0
-    # )
+    warehouse0 = Warehouse(
+        id=0,
+        type=0,
+        x=0,
+        y=0
+    )
 
-    # customer0 = Customer(
-    #     id=0,
-    #     type=1,
-    #     x=3,
-    #     y=3,
-    #     demand=2
-    # )
+    warehouse1 = Warehouse(
+        id=1,
+        type=0,
+        x=10,
+        y=10
+    )
 
-    # customer1 = Customer(
-    #     id=1,
-    #     type=1,
-    #     x=2,
-    #     y=2,
-    #     demand=1
-    #     )
+    warehouse2 = Warehouse(
+        id=1,
+        type=0,
+        x=-10,
+        y=-10
+    )
+
+    customer0 = Customer(
+        id=0,
+        type=1,
+        x=2,
+        y=2,
+        demand=2
+    )
+
+    customer1 = Customer(
+        id=1,
+        type=1,
+        x=5,
+        y=2,
+        demand=1
+    )
+
+    customer2 = Customer(
+        id=1,
+        type=1,
+        x=4,
+        y=4,
+        demand=1
+    )
     
-    # truck0 = Truck(
-    #     id=0,
-    #     start_node=warehouse0,
-    #     speed_factor=1,
-    #     item_capacity=10
-    # )
+    truck0 = Truck(
+        id=0,
+        start_node=warehouse0,
+        speed_factor=1,
+        item_capacity=10
+    )
 
-    # drone0 = Drone(
-    #     id=0,
-    #     start_node=warehouse0,
-    #     speed_factor=1,
-    #     item_capacity=1,
-    #     battery_capacity=5,
-    #     consumption_rate=1,
-    #     charging_speed=5
-    # )
-    
-    # print(truck0)
-    # truck0.travel_to(Point(3,3), vertical_first=True)
-    # print(truck0)
+    drone0 = Drone(
+        id=0,
+        start_node=warehouse0,
+        speed_factor=1,
+        item_capacity=1,
+        battery_capacity=5,
+        consumption_rate=1,
+        charging_speed=5
+    )
 
-    # print(drone0)
-    # drone0.travel_to(Point(2,2), diagonal_first=True)
-    # print(drone0)
-    # drone0.serve_customer(customer1)
-    # print(drone0.items)
-    # drone0.travel_to(Point(1,3), diagonal_first=True)
-    # print(drone0)
+    print(drone0.check_wh([warehouse1, warehouse2])) # this will be false
+    print(drone0.check_wh([warehouse0, warehouse1, warehouse2])) # this will be true
+    
+    print(drone0.check_cust(customer0)) # this will be true
+    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0])) # this will be false
 
-    # # Now truck and drone at same point
-    # truck0.charge_to(drone0,5)
-    # truck0.replenish_drone(drone0,1)
-    # print(drone0.items)
-
-    # truck0.serve_customer(customer0)
-    # print(truck0.items)
+    truck0.travel_to(customer2, vertical_first=True)
+    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0])) # now this will be true    
     
+    # ## start ##
+    # dvrp.initialize()
+    # for t in dvrp.trucks:
+    #     print(f"\n{t}")
     
-    ## start ##
-    dvrp.initialize()
-    for t in dvrp.trucks:
-        print(f"\n{t}")
-    
-    for i in range(dvrp.objective()):
-        draw_output(dvrp, i)
+    # for i in range(dvrp.objective()):
+    #     draw_output(dvrp, i)
         
-    # ALNS
-    random_state = rnd.RandomState(606)
-    alns = ALNS(random_state)
-    # add destroy
-    alns.add_destroy_operator(destroy_1)
-    # add repair
-    alns.add_repair_operator(repair_1)
+    # # ALNS
+    # random_state = rnd.RandomState(606)
+    # alns = ALNS(random_state)
+    # # add destroy
+    # alns.add_destroy_operator(destroy_1)
+    # # add repair
+    # alns.add_repair_operator(repair_1)
     
-    # run ALNS
-    # select cirterion
-    criterion = HillClimbing()
-    # assigning weights to methods
-    omegas = [3.0, 2.0, 1.0, 0]
-    lambda_ = 0.2
-    result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=10, collect_stats=True)
+    # # run ALNS
+    # # select cirterion
+    # criterion = HillClimbing()
+    # # assigning weights to methods
+    # omegas = [3.0, 2.0, 1.0, 0]
+    # lambda_ = 0.2
+    # result = alns.iterate(dvrp, omegas, lambda_, criterion,
+    #                       iterations=10, collect_stats=True)
 
-    # result
-    solution = result.best_state
-    objective = solution.objective()
-    print('Best heuristic objective is {}.'.format(objective))
+    # # result
+    # solution = result.best_state
+    # objective = solution.objective()
+    # print('Best heuristic objective is {}.'.format(objective))
