@@ -327,6 +327,74 @@ class Truck(Vehicle):
             current_t += 1
             self.visited_points.insert((current_x, current_y, current_t), i)
 
+
+    def vert_hor(self, unvisited_lst, dest, drone):
+
+        '''compare to get to dest from current position whether better to go vertical or horizontal first (get number of nearby customers from unvisited_lst)
+        Args:
+            unvisited_lst:: list
+                    list of remaining customers unvisited
+            dest:: customer object
+                    target customer for truck to go to
+            drone:: drone object
+                    drone reference for battery capacity  (IF CAN SOMEHOW JUST GET THE VALUE INSTEAD OF HAVING TO PUT WOULD BE BETTER NOT SURE HOW)
+        
+        
+        '''
+        start_x = self.visited_points[-1][0]
+        start_y = self.visited_points[-1][1]
+        #horizontal first 
+        hor_lst = []
+        i = 0
+        while (start_x+i) != dest.x:
+            hor_lst.append((start_x+i, start_y))
+            i += 1 if start_x+i < dest.x else -1
+
+        j = 0
+        while (start_y +j) != dest.y:
+            hor_lst.append((start_x +i, start_y +j))
+            j += 1 if start_y +j < dest.y else -1  
+
+        hor_ind = 0
+        for cust in unvisited_lst:
+            for pt in hor_lst:
+                if max(abs(cust.x-pt[0]),abs(cust.y-pt[1])) <= drone.battery_capacity//2+1:
+                    hor_ind += 1
+                    break
+
+        #vertical fist
+        vert_lst = []
+        j = 0
+        while(start_y +j) != dest.y:
+            vert_lst.append((start_x, start_y+j))
+            j += 1 if start_y + j < dest.y else -1
+
+        i = 0
+        while (start_x+i) != dest.x:
+            vert_lst.append((start_x+i, start_y+j))
+            i +=1 if start_x+i < dest.x else -1
+        
+        vert_ind = 0
+        for cust in unvisited_lst:
+            for pt in vert_lst:
+                if max(abs(cust.x-pt[0]),abs(cust.y-pt[1])) <= drone.battery_capacity//2+1:
+                    vert_ind += 1
+                    break
+                    
+        return 0 if hor_ind > vert_ind else 1
+
+    def time_to_customer(self, customer):
+        '''Get time required for truck to reach a customer
+        Args:
+            customer:: customer object
+                    target customer for truck to go to
+
+        '''
+        checker_truck = copy.deepcopy(self)
+        checker_truck.travel_to(customer, 0)
+        return checker_truck.visited_points[-1][2]
+
+
     def __str__(self):
         return 'Truck id: {}, visited_points: {}'.format(self.id, self.visited_points)
         
@@ -547,37 +615,37 @@ class DVRP(object):
         # record the unvisited customers, eg. [Customer9, Customer10]
         self.customer_unvisited = copy.deepcopy(customers)
 
-    def charge_required(source, dest):
-        '''Check charge or time required to travel from one point to another
-            Args:
-                source::Tuple (x,y)
-                    (x,y) coordinate of starting point
-                dest::Tuple (x,y)
-                    (x,y) coordinate of destination point               
-            '''
-        charge_req = 0
-        source_x, source_y = source
-        dest_x, dest_y = dest
+    # def charge_required(source, dest):
+    #     '''Check charge or time required to travel from one point to another
+    #         Args:
+    #             source::Tuple (x,y)
+    #                 (x,y) coordinate of starting point
+    #             dest::Tuple (x,y)
+    #                 (x,y) coordinate of destination point               
+    #         '''
+    #     charge_req = 0
+    #     source_x, source_y = source
+    #     dest_x, dest_y = dest
 
-        direct_line = (dest_x == source_x or dest_y == source_y)
+    #     direct_line = (dest_x == source_x or dest_y == source_y)
         
-        while not direct_line:
-            source_x += 1 if source_x < dest_x else -1
-            source_y += 1 if source_y < dest_y else -1
-            charge_req += 1       
+    #     while not direct_line:
+    #         source_x += 1 if source_x < dest_x else -1
+    #         source_y += 1 if source_y < dest_y else -1
+    #         charge_req += 1       
 
-            direct_line = (dest_x== source_x or dest_y == source_y)
+    #         direct_line = (dest_x== source_x or dest_y == source_y)
 
-        direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))
-        while not direct_diag:
-            if abs(dest_x-source_x) > abs(dest_y-source_y):
-                source_x += 1 if source_x < dest_x else -1
-            else:
-                source_y += 1 if source_y < dest_y else -1     
-            charge_req += 1          
-            direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))    
+    #     direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))
+    #     while not direct_diag:
+    #         if abs(dest_x-source_x) > abs(dest_y-source_y):
+    #             source_x += 1 if source_x < dest_x else -1
+    #         else:
+    #             source_y += 1 if source_y < dest_y else -1     
+    #         charge_req += 1          
+    #         direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))    
 
-        return charge_req
+    #     return charge_req
 
     # def drone_cust_check(drone, customer, dvrp, item_or_charge):
     #     '''Check possible charging points for drone after visiting a potential customer
@@ -618,6 +686,36 @@ class DVRP(object):
     #                 possible_pts.append(loc)
     #     return possible_pts 
 
+
+
+    def split_route(self):
+        ''' Future Initialization for construction heuristic'''
+
+        for c in range(len(self.customers)):
+            cust = self.customers[c]
+            # drone checks
+
+            for drone in self.drones:
+                if cust.demand <= drone.item_capacity:
+                    break
+                # 1. drone cust-truck check
+                # 2. drone- warehouse - cust- truck check
+                # 3. drone - truck - cust- truck check
+            #if feasible move drone to customer (store in drone next potential time to meet truck from truck cehck)
+
+            # truck checks - hear if drone feasible 'continue' to next customer (dont go to truck loop)
+            
+            best_truck_time = 1e3
+            truck_idx = -1
+
+            for truck in self.trucks:
+                time = truck.time_to_customer(cust)
+                if time < best_truck_time:
+                    truck_idx +=1
+                    
+            direction = self.trucks[truck_idx].vert_hor(self.customers[c:], cust, self.drones[0])
+            self.trucks[truck_idx].travel_to(cust,direction)
+                           
         
     def initialize(self):
         ''' Initialize the state with construction heuristic
