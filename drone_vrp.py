@@ -734,7 +734,7 @@ class DVRP(object):
                 for point in best_check.visited_points:
                     if point[2]> drone.travel_turn:
                         drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
-                self.drone.serve_customer(cust)
+                drone.serve_customer(cust)
                 continue
             
         
