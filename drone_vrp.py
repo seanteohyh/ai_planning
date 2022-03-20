@@ -1,3 +1,4 @@
+from ast import Continue
 from asyncio.format_helpers import _format_callback_source
 from calendar import c
 import configparser
@@ -574,6 +575,7 @@ class Drone(Vehicle):
         if not consec_checks:
             return False
         else:
+            print('target point', target_point)
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_point, diagonal_first=True)
             target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
@@ -696,34 +698,54 @@ class DVRP(object):
 
             # drone checks
             best_drone_time = 1e3
-            drone_idx = -1
-            for drone in self.drones:
-                if cust.demand <= drone.item_capacity:
+            best_idx = 0
+            
+            for d in range(len(self.drones)):
+                drone = self.drones[d]
+                if cust.demand > drone.item_capacity:
                     break
+
+                drone_time = 1e3
                 # 1. drone cust-truck check
                 if drone.check_cust(cust, consec_checks=True).check_truck(self.trucks):
-                    drone_time = drone.time_to_point(cust)
+                    checker_drone = drone.check_cust(cust, consec_checks = True)
+                    drone_time = checker_drone.visited_points[-1][2]
+                    mtd = 1
                     
                 # 2. drone- warehouse - cust- truck check
-                if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
+                #if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
                     
-                    "Checker drone to drave to warehouse- cust- truck and get the overall time"
-                    
+                if drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    checker_drone = drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust, consec_checks = True)
+                    drone_time = checker_drone.visited_points[-1][2]
+                    mtd = 2
 
                 # 3. drone - truck - cust- truck check
-            #if feasible move drone to customer (store in drone next potential time to meet truck from truck cehck)
-
-            # truck checks - hear if drone feasible 'continue' to next customer (dont go to truck loop)
+                if drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    checker_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
+                    drone_time = checker_drone.visited_points[-1][2]
+                    mtd = 3
             
+                if drone_time < best_drone_time:
+                    best_drone_time = drone_time
+                    best_check = checker_drone
 
+            if best_drone_time < 1e3:
+                for point in best_check.visited_points:
+                    if point[2]> drone.travel_turn:
+                        drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
+                continue
             
+        
+
+            # truck checks    
             best_truck_time = 1e3
-            truck_idx = -1
-
             for truck in self.trucks:
                 time = truck.time_to_point(cust)
+                
                 if time < best_truck_time:
-                    truck_idx +=1
+                    best_truck_time = time
+                    truck_idx = truck.id
                     
             direction = self.trucks[truck_idx].vert_hor(self.customers[c:], cust, self.drones[0])
             self.trucks[truck_idx].travel_to(cust,direction)
