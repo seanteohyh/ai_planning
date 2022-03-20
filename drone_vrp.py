@@ -176,6 +176,16 @@ class Vehicle(object):
         # all the (points, time) including warehouse, customers, or waiting point visited by the vehicle::[(x1,y1,t1), (x2,y2,t2)]
         self.visited_points = [(self.start_node.x, self.start_node.y, 0)] # start from warehouse
 
+    def time_to_point(self, dest):
+        '''Get time required for truck to reach a customer
+        Args:
+            dest:: target object
+                    target customer/wh for vehicle to go to
+
+        '''
+        checker_vehicle= copy.deepcopy(self)
+        checker_vehicle.travel_to(dest, 0)
+        return checker_vehicle.visited_points[-1][2]
 
     def serve_customer(self, customer):
         '''gives customer quantity of items demanded
@@ -382,17 +392,6 @@ class Truck(Vehicle):
                     break
                     
         return 0 if hor_ind > vert_ind else 1
-
-    def time_to_customer(self, customer):
-        '''Get time required for truck to reach a customer
-        Args:
-            customer:: customer object
-                    target customer for truck to go to
-
-        '''
-        checker_truck = copy.deepcopy(self)
-        checker_truck.travel_to(customer, 0)
-        return checker_truck.visited_points[-1][2]
 
 
     def __str__(self):
@@ -693,23 +692,36 @@ class DVRP(object):
 
         for c in range(len(self.customers)):
             cust = self.customers[c]
-            # drone checks
 
+
+            # drone checks
+            best_drone_time = 1e3
+            drone_idx = -1
             for drone in self.drones:
                 if cust.demand <= drone.item_capacity:
                     break
                 # 1. drone cust-truck check
+                if drone.check_cust(cust, consec_checks=True).check_truck(self.trucks):
+                    drone_time = drone.time_to_point(cust)
+                    
                 # 2. drone- warehouse - cust- truck check
+                if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
+                    
+                    "Checker drone to drave to warehouse- cust- truck and get the overall time"
+                    
+
                 # 3. drone - truck - cust- truck check
             #if feasible move drone to customer (store in drone next potential time to meet truck from truck cehck)
 
             # truck checks - hear if drone feasible 'continue' to next customer (dont go to truck loop)
             
+
+            
             best_truck_time = 1e3
             truck_idx = -1
 
             for truck in self.trucks:
-                time = truck.time_to_customer(cust)
+                time = truck.time_to_point(cust)
                 if time < best_truck_time:
                     truck_idx +=1
                     
