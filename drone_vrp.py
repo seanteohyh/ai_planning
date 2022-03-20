@@ -734,6 +734,7 @@ class DVRP(object):
                 for point in best_check.visited_points:
                     if point[2]> drone.travel_turn:
                         drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
+                self.drone.serve_customer(cust)
                 continue
             
         
@@ -749,6 +750,7 @@ class DVRP(object):
                     
             direction = self.trucks[truck_idx].vert_hor(self.customers[c:], cust, self.drones[0])
             self.trucks[truck_idx].travel_to(cust,direction)
+            self.trucks[truck_idx].serve_customer(cust)
                            
         
     def initialize(self):
@@ -777,7 +779,9 @@ class DVRP(object):
         ''' Calculate the objective value of the state
         Return turns needed to fulfil customer orders and for vehicles to travel back to warehouse
         '''
-        return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
+
+        return sum([c.turn_served for c in self.customers])
+        #return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
 
 
 
