@@ -467,32 +467,43 @@ class Drone(Vehicle):
             checker_drone.travel_to(target_wh, diagonal_first=True)
             return checker_drone
 
-    def check_truck(self, trucks, consec_checks=False):
+    def check_truck(self, trucks, consec_checks=False, save_points=False):
         '''Check if route to any trucks is feasible
         Args:
             trucks::List of truck objects
                 the list of trucks we want to check if drone route is feasible to
             consec_checks::Boolean
                 True if we want to continue checking route to other points, False otherwise
+            save_points::Boolean
+                True if we want a returned dictionary of truck id to possible feasible points pair
         Returns:
-            checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
+            checker_drone if consec_checks is True, 
+            saved_points if save_points is True,
+            else 1 if feasible, 0 otherwise
         '''
+        if consec_checks and save_points:
+            return "In check_truck, consec_checks and save_points cannot be true at the same time. Please change one to false."
         min_turn = 1e3
         target_truck = None
         target_point = None
+        saved_points = {}
         for truck in trucks:
             for point in truck.visited_points:
-                if point[2] <= self.travel_turn:
+                if point[2] <= self.travel_turn or point[2] > self.travel_turn+self.battery_level:
                     continue
                 checker_drone = copy.deepcopy(self) 
                 checker_drone.travel_to(Point(point[0], point[1]), diagonal_first=True)
                 if checker_drone.visited_points[-1][2] == point[2] and checker_drone.battery_level >= 0:
-                    if not consec_checks:
-                        return True
                     if checker_drone.travel_turn < min_turn:
                         min_turn = checker_drone.travel_turn
                         target_truck = truck 
                         target_point = Point(point[0], point[1])
+                    saved_points[target_truck.id] = (point[0], point[1], point[2])
+        if not consec_checks and target_point != None:
+            if save_points:
+                return saved_points
+            else:
+                return True
         if not consec_checks:
             return False
         else:

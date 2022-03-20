@@ -168,7 +168,7 @@ if __name__ == '__main__':
     print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0])) # this will be false
 
     truck0.travel_to(customer2, vertical_first=True)
-    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0])) # now this will be true    
+    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0], save_points=True)) # now this will be true    
     
     # ## start ##
     # dvrp.initialize()
