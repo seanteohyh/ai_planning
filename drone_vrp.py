@@ -476,7 +476,19 @@ class Drone(Vehicle):
             self.travel_straight(point)
         else:
             self.travel_straight(point)
-            self.travel_diag(point)      
+            self.travel_diag(point)  
+            
+    def wait_for_truck(self,point):
+        '''Wait at indicated point till truck reaches point
+        saved_point(x,y,t) from check_truck function
+        '''
+        current_x, current_y , current_t = self.visited_points[-1]    
+        assert(current_x== point[0] & current_y == point[1]) 
+    
+        while current_t < point[2]:
+            current_t += 1
+            self.visited_points.apped((current_x, current_y, current_t))
+            
 
     def travel_on_truck(self, point, t):
         '''Point travelled while charging on truck
@@ -734,6 +746,11 @@ class DVRP(object):
                 for point in best_check.visited_points:
                     if point[2]> drone.travel_turn:
                         drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
+                        # need to somehow get where wh and truck is
+                        
+                        # if drone reaches wh , refill inve
+                        
+                        #if drone reaches truck , wait_for_truck, refill inve, charge_to 
                 drone.serve_customer(cust)
                 continue
             
