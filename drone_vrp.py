@@ -703,7 +703,7 @@ class DVRP(object):
             for d in range(len(self.drones)):
                 drone = self.drones[d]
                 if cust.demand > drone.item_capacity:
-                    break
+                    continue
 
                 drone_time = 1e3
                 # 1. drone cust-truck check
