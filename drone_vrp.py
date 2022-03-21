@@ -116,7 +116,7 @@ class Warehouse(Node):
         super(Warehouse, self).__init__(id, type, x, y)
 
             
-    def replenish_item(self, vehicle, x):
+    def replenish_items(self, vehicle, x):
         '''Replenish drone items to item level x
         Args:
             vehicle:: truck/drone object to receive items
@@ -483,11 +483,11 @@ class Drone(Vehicle):
         saved_point(x,y,t) from check_truck function
         '''
         current_x, current_y , current_t = self.visited_points[-1]    
-        assert(current_x== point[0] & current_y == point[1]) 
+        assert((current_x== point[0]) & (current_y == point[1])) 
     
         while current_t < point[2]:
             current_t += 1
-            self.visited_points.apped((current_x, current_y, current_t))
+            self.visited_points.append((current_x, current_y, current_t))
             
     def replenish_inve(self):
         '''Top up inventory. Function only to be use when at warehouse or truck
@@ -516,10 +516,14 @@ class Drone(Vehicle):
         '''
         checker_drone = copy.deepcopy(self)      
         checker_drone.travel_to(customer, diagonal_first=True)
+        if checker_drone.items < customer.demand:
+            checker_drone.battery_level = -1
+            checker_drone.items = 2 #set this so server_cust for checker_drone wont assert
+        
 
         if consec_checks:
             return checker_drone
-        elif checker_drone.battery_level < 0:
+        elif checker_drone.battery_level < 0 :
             return False
         else:
             return True
@@ -547,16 +551,13 @@ class Drone(Vehicle):
                     target_wh = wh
         if not consec_checks:
             return False
-        elif target_wh == None:
-            return False
         else:
             checker_drone = copy.deepcopy(self) 
-            checker_drone.travel_to(target_wh, diagonal_first=True)
-<<<<<<< HEAD
-            target_wh.replenish_items(checker_drone, checker_drone.item_capacity)
-            print("WH CHECK", checker_drone.visited_points)
-=======
->>>>>>> 5bc0894c96c2d541598d6ee8ec07dd85f834617f
+            if target_wh == None:
+                checker_drone.battery_level = -1
+            else:
+                checker_drone.travel_to(target_wh, diagonal_first=True)
+                target_wh.replenish_items(checker_drone, checker_drone.item_capacity)
             return checker_drone
 
     def check_truck(self, trucks, consec_checks=False, save_points=False):
@@ -585,26 +586,32 @@ class Drone(Vehicle):
                     continue
                 checker_drone = copy.deepcopy(self) 
                 checker_drone.travel_to(Point(point[0], point[1]), diagonal_first=True)
-                if checker_drone.visited_points[-1][2] == point[2] and checker_drone.battery_level >= 0:
+                checker_drone.wait((point[0],point[1],point[2]))
+                
+                if checker_drone.visited_points[-1][2] <= point[2] and checker_drone.battery_level >= 0:
                     if checker_drone.travel_turn < min_turn:
                         min_turn = checker_drone.travel_turn
                         target_truck = truck 
                         target_point = Point(point[0], point[1])
+                        target_waitime = (point[0], point[1], point[2])
                     saved_points[target_truck.id] = (point[0], point[1], point[2])
-        if not consec_checks and target_point != None:
+        if not consec_checks and target_point != None :
             if save_points:
                 return saved_points
             else:
                 return True
         if not consec_checks:
             return False
-        elif target_truck == None:
-            return False
+            
         else:
             checker_drone = copy.deepcopy(self) 
-            checker_drone.travel_to(target_point, diagonal_first=True)
-            target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
-            target_truck.replenish_drone(checker_drone, checker_drone.item_capacity)
+            if target_truck == None:
+                checker_drone.battery_level = -1
+            else:
+                checker_drone.travel_to(target_point, diagonal_first=True)
+                checker_drone.wait(target_waitime)
+                target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
+                target_truck.replenish_drone(checker_drone, checker_drone.item_capacity)
             return checker_drone
 
 
@@ -738,27 +745,24 @@ class DVRP(object):
                     test_drone = drone.check_cust(cust, consec_checks = True)
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 1
-                 #   print('mtd 1 drone time', drone_time)
+                    print('mtd 1 drone',drone.id,' time', drone_time)
                     
-                # 2. drone- warehouse - cust- truck check
-                #if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
-                    
+                # 2. drone- warehouse - cust- truck check  
                 elif drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
-                    test_drone = drone.check_wh(self.warehouses, consec_checks = True)
-                #    print('warehosue check', test_drone.visited_points)
-                    test_drone = test_drone.check_cust(cust, consec_checks = True)
+                    test_drone = drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust, consec_checks = True)
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 2
-                   # print('mtd 2 drone time', drone_time)
+                    print('mtd 2 drone', drone.id,' time', drone_time)
 
                 # 3. drone - truck - cust- truck check
                 elif drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
                     test_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
+                    trgt_truck = drone.check_truck(self.trucks, consec_checks = True) #THIS SHOULD BE A TRUCK 
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 3
+                    print('mtd 3 drone', drone.id, 'time', drone_time)
                 
                 if drone_time < best_drone_time:
-                    #print('cust',cust,'mtd',mtd,'drone_time', drone_time,'best_drone_time',best_drone_time,'inventory',drone.items)
                     best_drone_time = drone_time
                     best_check = test_drone
                     best_drone = drone
@@ -766,20 +770,25 @@ class DVRP(object):
                     
             mtd_cnt = 0
             if best_drone_time < 1e3:
-                #print('best mtd',best_mtd,'best check', best_check.visited_points)
+                print(best_check.visited_points)
                 for point in best_check.visited_points:
                     if point[2]> best_drone.travel_turn:
                         best_drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
+                        
+                        
                         if (best_mtd == 2) & (mtd_cnt ==1): #warehouse point
                             best_drone.replenish_inve()
+                        if (best_mtd == 3) & (mtd_cnt ==1): # first truck 
+                            #if drone reaches truck , wait till truck arrives, refill inve, charge_to
+                            best_drone.wait((point[0],point[1],point[2]))
+                            trgt_truck.charge_to(best_drone, best_drone.battery_capacity) #CURRENTLY TRGT_TRUCK IS A DRONE NEED TO CHANGE TO THE CHARGING TRUCK
+                            drone.replenish_inve()
                         mtd_cnt +=1
-                        # need to somehow get where wh and truck is
                         
-                        # if drone reaches wh , refill inve
+
                         
-                        #if drone reaches truck , wait till truck arrives, refill inve, charge_to
                 print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
-                #print('drone point visited',best_drone.visited_points)
+
                 best_drone.serve_customer(cust)
                 
                 continue
@@ -789,16 +798,16 @@ class DVRP(object):
             for truck in self.trucks:
                 
                 time = truck.time_to_point(cust)
-               # print('truck',truck, 'time', time, 'best time',best_truck_time)
+                #print('truck',truck, 'time', time, 'best time',best_truck_time)
                 if time < best_truck_time:
                     best_truck_time = time
-                    truck_idx = truck.id
+                    best_truck = truck
             
                     
-            direction = self.trucks[truck_idx].vert_hor(self.customers[c:], cust, self.drones[0])
-            self.trucks[truck_idx].travel_to(cust,direction)
-            self.trucks[truck_idx].serve_customer(cust)
-            print('cust',cust.id, 'served by truck', truck.id)
+            direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
+            best_truck.travel_to(cust,direction)
+            best_truck.serve_customer(cust)
+            print('cust',cust.id, 'served by truck', best_truck.id)
                            
         
     def initialize(self):
