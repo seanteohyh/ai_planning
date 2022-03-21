@@ -116,7 +116,7 @@ class Warehouse(Node):
         super(Warehouse, self).__init__(id, type, x, y)
 
             
-    def replenish_item(vehicle,x):
+    def replenish_item(self, vehicle, x):
         '''Replenish drone items to item level x
         Args:
             vehicle:: truck/drone object to receive items
@@ -548,9 +548,12 @@ class Drone(Vehicle):
                     target_wh = wh
         if not consec_checks:
             return False
+        elif target_wh == None:
+            return False
         else:
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_wh, diagonal_first=True)
+            target_wh.replenish_items(checker_drone, checker_drone.item_capacity)
             print("WH CHECK", checker_drone.visited_points)
             return checker_drone
 
@@ -593,11 +596,14 @@ class Drone(Vehicle):
                 return True
         if not consec_checks:
             return False
+        elif target_truck == None:
+            return False
         else:
             print('target point', target_point)
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_point, diagonal_first=True)
             target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
+            target_truck.replenish_drone(checker_drone, checker_drone.item_capacity)
             return checker_drone
 
 
@@ -723,13 +729,8 @@ class DVRP(object):
             for d in range(len(self.drones)):
                 drone = self.drones[d]
                 if cust.demand > drone.item_capacity:
-<<<<<<< HEAD
-                    continue
-
-=======
                     break
-            
->>>>>>> dfb88b74844ca52fce72925031758ed0b111a804
+
                 drone_time = 1e3
                 # 1. drone cust-truck check
                 if drone.check_cust(cust, consec_checks=True).check_truck(self.trucks, consec_checks = False):
