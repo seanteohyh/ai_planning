@@ -310,14 +310,18 @@ class Truck(Vehicle):
                 target inventory level to replenish to 
         '''
         
-        assert(x <= drone.item_capacity)
-        if drone.items >= x:
-            amt = 0
-        else:
-            amt = x - drone.items
-        assert(self.items >= amt)
-        self.items -= amt
-        drone.items += amt
+        # assert(x <= drone.item_capacity)
+        # if drone.items >= x:
+        #     amt = 0
+        # else:
+        #     amt = x - drone.items
+        # assert(self.items >= amt)
+        # self.items -= amt
+        # drone.items += amt
+
+
+        assert(x<= drone.item_capacity)  
+        drone.item = x
     
 
     def wait(self, x, t):
@@ -710,7 +714,7 @@ class DVRP(object):
 
             # drone checks
             best_drone_time = 1e3
-            best_idx = 0
+            best_mtd = 0
             
             for d in range(len(self.drones)):
                 drone = self.drones[d]
@@ -741,16 +745,22 @@ class DVRP(object):
                 if drone_time < best_drone_time:
                     best_drone_time = drone_time
                     best_check = checker_drone
+                    best_mtd = mtd
 
             if best_drone_time < 1e3:
                 for point in best_check.visited_points:
                     if point[2]> drone.travel_turn:
                         drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
-                        # need to somehow get where wh and truck is
+
+                        #if best_mtd == 2: (where drone reach wh)
+                            # warehouse.replenish_item 
+                    
+                            
+                        #if best_md == 3: (when drone reaches truck spot )
+                            # drone.wait_for_truck
+                            # truck.repleinsh_drone
+                            # drone.charge_to
                         
-                        # if drone reaches wh , refill inve
-                        
-                        #if drone reaches truck , wait_for_truck, refill inve, charge_to 
                 drone.serve_customer(cust)
                 continue
             
