@@ -514,10 +514,9 @@ class Drone(Vehicle):
         Returns:
             checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
         '''
-        checker_drone = copy.deepcopy(self)
-        print('cust.x,y', (customer.x,customer.y))
+        checker_drone = copy.deepcopy(self)      
         checker_drone.travel_to(customer, diagonal_first=True)
-        print('drone.x,y',(checker_drone.visited_points[-1][0],checker_drone.visited_points[-1][1]))
+
         if consec_checks:
             return checker_drone
         elif checker_drone.battery_level < 0:
@@ -551,7 +550,6 @@ class Drone(Vehicle):
         else:
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_wh, diagonal_first=True)
-            print("WH CHECK", checker_drone.visited_points)
             return checker_drone
 
     def check_truck(self, trucks, consec_checks=False, save_points=False):
@@ -594,7 +592,6 @@ class Drone(Vehicle):
         if not consec_checks:
             return False
         else:
-            print('target point', target_point)
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_point, diagonal_first=True)
             target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
@@ -713,7 +710,7 @@ class DVRP(object):
 
         for c in range(len(self.customers)):
             cust = self.customers[c]
-            print('customer', cust.id)
+            #print('customer', cust.id)
 
 
             # drone checks
@@ -731,46 +728,49 @@ class DVRP(object):
                     test_drone = drone.check_cust(cust, consec_checks = True)
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 1
-                    print('mtd 1 drone time', drone_time)
+                 #   print('mtd 1 drone time', drone_time)
                     
                 # 2. drone- warehouse - cust- truck check
                 #if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
                     
-                if drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
-                    test_drone = drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust, consec_checks = True)
+                elif drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    test_drone = drone.check_wh(self.warehouses, consec_checks = True)
+                #    print('warehosue check', test_drone.visited_points)
+                    test_drone = test_drone.check_cust(cust, consec_checks = True)
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 2
-                    print('mtd 2 drone time', drone_time)
+                   # print('mtd 2 drone time', drone_time)
 
                 # 3. drone - truck - cust- truck check
-#                 if drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
-#                     test_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
-#                     drone_time = test_drone.visited_points[-1][2]
-#                     mtd = 3
+                elif drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    test_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
+                    drone_time = test_drone.visited_points[-1][2]
+                    mtd = 3
                 
                 if drone_time < best_drone_time:
-                    print('cust',cust,'mtd',mtd,'drone_time', drone_time,'best_drone_time',best_drone_time,'inventory',drone.items)
+                    #print('cust',cust,'mtd',mtd,'drone_time', drone_time,'best_drone_time',best_drone_time,'inventory',drone.items)
                     best_drone_time = drone_time
                     best_check = test_drone
+                    best_drone = drone
                     best_mtd=  mtd
                     
             mtd_cnt = 0
             if best_drone_time < 1e3:
-                print('best mtd',best_mtd,'best check', best_check.visited_points)
+                #print('best mtd',best_mtd,'best check', best_check.visited_points)
                 for point in best_check.visited_points:
-                    if point[2]> drone.travel_turn:
-                        drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
+                    if point[2]> best_drone.travel_turn:
+                        best_drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
                         if (best_mtd == 2) & (mtd_cnt ==1): #warehouse point
-                            drone.replenish_inve()
+                            best_drone.replenish_inve()
                         mtd_cnt +=1
                         # need to somehow get where wh and truck is
                         
                         # if drone reaches wh , refill inve
                         
                         #if drone reaches truck , wait till truck arrives, refill inve, charge_to
-                print('cust', cust.id, 'served by drone', drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (drone.visited_points[-1][0],drone.visited_points[-1][1]))
-                print('drone point visited',drone.visited_points)
-                drone.serve_customer(cust)
+                print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
+                #print('drone point visited',best_drone.visited_points)
+                best_drone.serve_customer(cust)
                 
                 continue
             
@@ -779,7 +779,7 @@ class DVRP(object):
             for truck in self.trucks:
                 
                 time = truck.time_to_point(cust)
-                print('truck',truck, 'time', time, 'best time',best_truck_time)
+               # print('truck',truck, 'time', time, 'best time',best_truck_time)
                 if time < best_truck_time:
                     best_truck_time = time
                     truck_idx = truck.id
