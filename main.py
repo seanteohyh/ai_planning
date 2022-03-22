@@ -71,7 +71,10 @@ def draw_animated_output(dvrp):
             x_list = []
             y_list = []
             for t in range(target_t):
-                x, y = [(p[0], p[1]) for p in drone.visited_points if p[2] == t][0]
+                if t < len(drone.visited_points):
+                    x, y = [(p[0], p[1]) for p in drone.visited_points if p[2] == t][0]
+                else:
+                    x, y = drone.visited_points[-1][0], drone.visited_points[-1][1] 
                 x_list.append(x)
                 y_list.append(y)
             lines[index].set_data(x_list,y_list)
@@ -80,7 +83,10 @@ def draw_animated_output(dvrp):
             x_list = []
             y_list = []
             for t in range(target_t):
-                x, y = [(p[0], p[1]) for p in truck.visited_points if p[2] == t][0]
+                if t < len(truck.visited_points):
+                    x, y = [(p[0], p[1]) for p in truck.visited_points if p[2] == t][0]
+                else:
+                    x, y = truck.visited_points[-1][0], truck.visited_points[-1][1]
                 x_list.append(x)
                 y_list.append(y)
             lines[index].set_data(x_list,y_list)
@@ -214,7 +220,7 @@ if __name__ == '__main__':
         Customer(
             id=2,
             type=1,
-            x=3,
+            x=2,
             y=1,
             demand=1
         )
@@ -234,7 +240,7 @@ if __name__ == '__main__':
             id=0,
             start_node=warehouses[0],
             speed_factor=1,
-            item_capacity=1,
+            item_capacity=2,
             battery_capacity=5,
             consumption_rate=1,
             charging_speed=5
@@ -242,6 +248,10 @@ if __name__ == '__main__':
     ]
 
     dvrp = DVRP(warehouses=warehouses, customers=customers, trucks=trucks, drones=drones, map_size=100)
+
+    # checker = drones[0].check_wh(dvrp.warehouses).check_cust(dvrp.customers[0]).check_truck(dvrp.trucks)
+    # print(checker.evaluate())
+    # print(checker.drone)
 
     dvrp.split_route()
     
@@ -252,7 +262,8 @@ if __name__ == '__main__':
         print(truck)
 
     draw_animated_output(dvrp)
-    # ## start ##
+
+    # # ## start ##
     # dvrp.initialize()
     # for t in dvrp.trucks:
     #     print(f"\n{t}")
