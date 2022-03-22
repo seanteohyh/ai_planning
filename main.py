@@ -99,77 +99,81 @@ if __name__ == '__main__':
     # for d in dvrp.drones:
     #     print(d)
 
-    warehouse0 = Warehouse(
-        id=0,
-        type=0,
-        x=0,
-        y=0
-    )
+    warehouses = [
+        Warehouse(
+            id=0,
+            type=0,
+            x=0,
+            y=0
+        ),
+        Warehouse(
+            id=1,
+            type=0,
+            x=10,
+            y=10
+        ),
+        Warehouse(
+            id=2,
+            type=0,
+            x=-10,
+            y=-10
+        )
+    ]
 
-    warehouse1 = Warehouse(
-        id=1,
-        type=0,
-        x=10,
-        y=10
-    )
-
-    warehouse2 = Warehouse(
-        id=1,
-        type=0,
-        x=-10,
-        y=-10
-    )
-
-    customer0 = Customer(
-        id=0,
-        type=1,
-        x=2,
-        y=2,
-        demand=2
-    )
-
-    customer1 = Customer(
-        id=1,
-        type=1,
-        x=5,
-        y=2,
-        demand=1
-    )
-
-    customer2 = Customer(
-        id=1,
-        type=1,
-        x=4,
-        y=4,
-        demand=1
-    )
+    customers = [
+        Customer(
+            id=0,
+            type=1,
+            x=2,
+            y=2,
+            demand=1
+        ),
+        Customer(
+            id=1,
+            type=1,
+            x=5,
+            y=2,
+            demand=1
+        ),
+        Customer(
+            id=2,
+            type=1,
+            x=4,
+            y=4,
+            demand=1
+        )
+    ]
     
-    truck0 = Truck(
-        id=0,
-        start_node=warehouse0,
-        speed_factor=1,
-        item_capacity=10
-    )
+    trucks = [
+        Truck(
+            id=0,
+            start_node=warehouses[0],
+            speed_factor=1,
+            item_capacity=10
+        )
+    ]
 
-    drone0 = Drone(
-        id=0,
-        start_node=warehouse0,
-        speed_factor=1,
-        item_capacity=1,
-        battery_capacity=5,
-        consumption_rate=1,
-        charging_speed=5
-    )
+    drones = [
+        Drone(
+            id=0,
+            start_node=warehouses[0],
+            speed_factor=1,
+            item_capacity=1,
+            battery_capacity=5,
+            consumption_rate=1,
+            charging_speed=5
+        )
+    ]
 
-    print(drone0.check_wh([warehouse1, warehouse2])) # this will be false
-    print(drone0.check_wh([warehouse0, warehouse1, warehouse2])) # this will be true
+    dvrp = DVRP(warehouses=warehouses, customers=customers, trucks=trucks, drones=drones, map_size=100)
+
+    dvrp.split_route()
     
-    print(drone0.check_cust(customer0)) # this will be true
-    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0])) # this will be false
+    for drone in dvrp.drones:
+        print(drone)
 
-    truck0.travel_to(customer2, vertical_first=True)
-    print(drone0.check_cust(customer0, consec_checks=True).check_truck(trucks=[truck0], save_points=True)) # now this will be true    
-    
+    for truck in dvrp.trucks:
+        print(truck)
     # ## start ##
     # dvrp.initialize()
     # for t in dvrp.trucks:
