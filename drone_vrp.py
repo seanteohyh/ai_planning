@@ -552,11 +552,8 @@ class Drone(Vehicle):
         else:
             checker_drone = copy.deepcopy(self) 
             checker_drone.travel_to(target_wh, diagonal_first=True)
-<<<<<<< HEAD
             target_wh.replenish_items(checker_drone, checker_drone.item_capacity)
             print("WH CHECK", checker_drone.visited_points)
-=======
->>>>>>> 5bc0894c96c2d541598d6ee8ec07dd85f834617f
             return checker_drone
 
     def check_truck(self, trucks, consec_checks=False, save_points=False):
