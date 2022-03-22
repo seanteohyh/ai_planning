@@ -15,6 +15,82 @@ import numpy.random as rnd
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.animation as animation
+
+def draw_animated_output(dvrp):
+    fig = plt.figure() 
+    ax = plt.axes(xlim=(-10, 10), ylim=(-10, 10))
+    max_frames = max([c.turn_served for c in dvrp.customers])+2
+    
+    # scatter plot for warehouses
+    wh = [(wh.x, wh.y) for wh in dvrp.warehouses]
+    wh_x = [i[0] for i in wh]
+    wh_y = [i[1] for i in wh]
+    plt.scatter(
+        wh_x, 
+        wh_y, 
+        c ="yellow", 
+        linewidths = 2,
+        marker ="^",
+        edgecolor ="red",
+        s = 200
+    )
+
+    # scatter plot for customers
+    c = [(c.x, c.y) for c in dvrp.customers]
+    c_x = [i[0] for i in c]
+    c_y = [i[1] for i in c]
+    plt.scatter(
+        c_x, 
+        c_y, 
+        c ="yellow", 
+        linewidths = 2,
+        marker ="s",
+        edgecolor ="green",
+        s = 200
+    )    
+
+    # lines for trucks and drones
+    lines = []
+    for _ in range(len(dvrp.drones)):
+        lobj = ax.plot([],[],lw=2,color="blue")[0]
+        lines.append(lobj)
+    for _ in range(len(dvrp.trucks)):
+        lobj = ax.plot([],[],lw=2,color="red")[0]
+        lines.append(lobj)
+
+    def init():
+        for line in lines:
+            line.set_data([], [])
+        return lines
+    
+    def animate_drones(i):
+        index = 0
+        target_t = i
+        for drone in dvrp.drones:
+            x_list = []
+            y_list = []
+            for t in range(target_t):
+                x, y = [(p[0], p[1]) for p in drone.visited_points if p[2] == t][0]
+                x_list.append(x)
+                y_list.append(y)
+            lines[index].set_data(x_list,y_list)
+            index += 1
+        for truck in dvrp.trucks:
+            x_list = []
+            y_list = []
+            for t in range(target_t):
+                x, y = [(p[0], p[1]) for p in truck.visited_points if p[2] == t][0]
+                x_list.append(x)
+                y_list.append(y)
+            lines[index].set_data(x_list,y_list)
+            index += 1
+        return lines
+
+    anim = animation.FuncAnimation(fig, animate_drones, init_func=init, 
+							frames=max_frames, interval=500, blit=True)
+
+    plt.show() 
 
 def draw_output(dvrp, turn=0):
     width = dvrp.map_size[0]
@@ -109,14 +185,14 @@ if __name__ == '__main__':
         Warehouse(
             id=1,
             type=0,
-            x=10,
-            y=10
+            x=6,
+            y=6
         ),
         Warehouse(
             id=2,
             type=0,
-            x=-10,
-            y=-10
+            x=-6,
+            y=-6
         )
     ]
 
@@ -131,15 +207,15 @@ if __name__ == '__main__':
         Customer(
             id=1,
             type=1,
-            x=5,
-            y=2,
+            x=1,
+            y=1,
             demand=1
         ),
         Customer(
             id=2,
             type=1,
-            x=4,
-            y=4,
+            x=3,
+            y=1,
             demand=1
         )
     ]
@@ -174,6 +250,8 @@ if __name__ == '__main__':
 
     for truck in dvrp.trucks:
         print(truck)
+
+    draw_animated_output(dvrp)
     # ## start ##
     # dvrp.initialize()
     # for t in dvrp.trucks:

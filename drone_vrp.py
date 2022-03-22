@@ -580,6 +580,7 @@ class Drone(Vehicle):
         target_truck = None
         target_point = None
         saved_points = {}
+        index = 0
         for truck in trucks:
             for point in truck.visited_points:
                 if point[2] <= self.travel_turn or point[2] > self.travel_turn+self.battery_level:
@@ -594,7 +595,8 @@ class Drone(Vehicle):
                         target_truck = truck 
                         target_point = Point(point[0], point[1])
                         target_waitime = (point[0], point[1], point[2])
-                    saved_points[target_truck] = (point[0], point[1], point[2])
+                    saved_points[(index, target_truck)] = (point[0], point[1], point[2])
+                    index += 1
         if not consec_checks and target_point != None :
             if save_points:
                 return saved_points
@@ -757,7 +759,7 @@ class DVRP(object):
                 # 3. drone - truck - cust- truck check
                 elif drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
                     test_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
-                    trgt_truck = [t for t,p in drone.check_truck(self.trucks, save_points = True) if p in test_drone.visited_points][0] #THIS SHOULD BE A TRUCK  
+                    trgt_truck = [t[1] for t,p in drone.check_truck(self.trucks, save_points = True).items() if p in test_drone.visited_points].pop(0) #THIS SHOULD BE A TRUCK  
                     drone_time = test_drone.visited_points[-1][2]
                     mtd = 3
                     print('mtd 3 drone', drone.id, 'time', drone_time)
