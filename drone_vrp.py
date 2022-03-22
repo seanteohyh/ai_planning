@@ -116,7 +116,7 @@ class Warehouse(Node):
         super(Warehouse, self).__init__(id, type, x, y)
 
             
-    def replenish_item(vehicle,x):
+    def replenish_items(self, vehicle, x):
         '''Replenish drone items to item level x
         Args:
             vehicle:: truck/drone object to receive items
@@ -310,18 +310,14 @@ class Truck(Vehicle):
                 target inventory level to replenish to 
         '''
         
-        # assert(x <= drone.item_capacity)
-        # if drone.items >= x:
-        #     amt = 0
-        # else:
-        #     amt = x - drone.items
-        # assert(self.items >= amt)
-        # self.items -= amt
-        # drone.items += amt
-
-
-        assert(x<= drone.item_capacity)  
-        drone.item = x
+        assert(x <= drone.item_capacity)
+        if drone.items >= x:
+            amt = 0
+        else:
+            amt = x - drone.items
+        assert(self.items >= amt)
+        self.items -= amt
+        drone.items += amt
     
 
     def wait(self, x, t):
@@ -482,17 +478,21 @@ class Drone(Vehicle):
             self.travel_straight(point)
             self.travel_diag(point)  
             
-    def wait_for_truck(self,point):
+    def wait(self,point):
         '''Wait at indicated point till truck reaches point
         saved_point(x,y,t) from check_truck function
         '''
         current_x, current_y , current_t = self.visited_points[-1]    
-        assert(current_x== point[0] & current_y == point[1]) 
+        assert((current_x== point[0]) & (current_y == point[1])) 
     
         while current_t < point[2]:
             current_t += 1
-            self.visited_points.apped((current_x, current_y, current_t))
+            self.visited_points.append((current_x, current_y, current_t))
             
+    def replenish_inve(self):
+        '''Top up inventory. Function only to be use when at warehouse or truck
+        '''
+        self.items = self.item_capacity
 
     def travel_on_truck(self, point, t):
         '''Point travelled while charging on truck
@@ -514,11 +514,16 @@ class Drone(Vehicle):
         Returns:
             checker_drone if consec_checks is True, else 1 if feasible, 0 otherwise
         '''
-        checker_drone = copy.deepcopy(self)
+        checker_drone = copy.deepcopy(self)      
         checker_drone.travel_to(customer, diagonal_first=True)
+        if checker_drone.items < customer.demand:
+            checker_drone.battery_level = -1
+            checker_drone.items = 2 #set this so server_cust for checker_drone wont assert
+        
+
         if consec_checks:
             return checker_drone
-        elif checker_drone.battery_level < 0:
+        elif checker_drone.battery_level < 0 :
             return False
         else:
             return True
@@ -548,7 +553,11 @@ class Drone(Vehicle):
             return False
         else:
             checker_drone = copy.deepcopy(self) 
-            checker_drone.travel_to(target_wh, diagonal_first=True)
+            if target_wh == None:
+                checker_drone.battery_level = -1
+            else:
+                checker_drone.travel_to(target_wh, diagonal_first=True)
+                target_wh.replenish_items(checker_drone, checker_drone.item_capacity)
             return checker_drone
 
     def check_truck(self, trucks, consec_checks=False, save_points=False):
@@ -559,7 +568,7 @@ class Drone(Vehicle):
             consec_checks::Boolean
                 True if we want to continue checking route to other points, False otherwise
             save_points::Boolean
-                True if we want a returned dictionary of truck id to possible feasible points pair
+                True if we want a returned dictionary of trucks to possible feasible points pair
         Returns:
             checker_drone if consec_checks is True, 
             saved_points if save_points is True,
@@ -571,30 +580,40 @@ class Drone(Vehicle):
         target_truck = None
         target_point = None
         saved_points = {}
+        index = 0
         for truck in trucks:
             for point in truck.visited_points:
                 if point[2] <= self.travel_turn or point[2] > self.travel_turn+self.battery_level:
                     continue
                 checker_drone = copy.deepcopy(self) 
                 checker_drone.travel_to(Point(point[0], point[1]), diagonal_first=True)
-                if checker_drone.visited_points[-1][2] == point[2] and checker_drone.battery_level >= 0:
+                checker_drone.wait((point[0],point[1],point[2]))
+                
+                if checker_drone.visited_points[-1][2] <= point[2] and checker_drone.battery_level >= 0:
                     if checker_drone.travel_turn < min_turn:
                         min_turn = checker_drone.travel_turn
                         target_truck = truck 
                         target_point = Point(point[0], point[1])
-                    saved_points[target_truck.id] = (point[0], point[1], point[2])
-        if not consec_checks and target_point != None:
+                        target_waitime = (point[0], point[1], point[2])
+                    saved_points[(index, target_truck)] = (point[0], point[1], point[2])
+                    index += 1
+        if not consec_checks and target_point != None :
             if save_points:
                 return saved_points
             else:
                 return True
         if not consec_checks:
             return False
+            
         else:
-            print('target point', target_point)
             checker_drone = copy.deepcopy(self) 
-            checker_drone.travel_to(target_point, diagonal_first=True)
-            target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
+            if target_truck == None:
+                checker_drone.battery_level = -1
+            else:
+                checker_drone.travel_to(target_point, diagonal_first=True)
+                checker_drone.wait(target_waitime)
+                target_truck.charge_to(checker_drone, checker_drone.battery_capacity)
+                target_truck.replenish_drone(checker_drone, checker_drone.item_capacity)
             return checker_drone
 
 
@@ -710,6 +729,7 @@ class DVRP(object):
 
         for c in range(len(self.customers)):
             cust = self.customers[c]
+            #print('customer', cust.id)
 
 
             # drone checks
@@ -723,61 +743,73 @@ class DVRP(object):
 
                 drone_time = 1e3
                 # 1. drone cust-truck check
-                if drone.check_cust(cust, consec_checks=True).check_truck(self.trucks):
-                    checker_drone = drone.check_cust(cust, consec_checks = True)
-                    drone_time = checker_drone.visited_points[-1][2]
+                if drone.check_cust(cust, consec_checks=True).check_truck(self.trucks, consec_checks = False):
+                    test_drone = drone.check_cust(cust, consec_checks = True)
+                    drone_time = test_drone.visited_points[-1][2]
                     mtd = 1
+                    print('mtd 1 drone',drone.id,' time', drone_time)
                     
-                # 2. drone- warehouse - cust- truck check
-                #if drone.check_wh(self.warehouses , consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks):
-                    
-                if drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
-                    checker_drone = drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust, consec_checks = True)
-                    drone_time = checker_drone.visited_points[-1][2]
+                # 2. drone- warehouse - cust- truck check  
+                elif drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust,consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    test_drone = drone.check_wh(self.warehouses, consec_checks = True).check_cust(cust, consec_checks = True)
+                    drone_time = test_drone.visited_points[-1][2]
                     mtd = 2
+                    print('mtd 2 drone', drone.id,' time', drone_time)
 
                 # 3. drone - truck - cust- truck check
-                if drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
-                    checker_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
-                    drone_time = checker_drone.visited_points[-1][2]
+                elif drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True).check_truck(self.trucks, consec_checks = False):
+                    test_drone = drone.check_truck(self.trucks, consec_checks = True).check_cust(cust, consec_checks = True)
+                    trgt_truck = [t[1] for t,p in drone.check_truck(self.trucks, save_points = True).items() if p in test_drone.visited_points].pop(0) #THIS SHOULD BE A TRUCK  
+                    drone_time = test_drone.visited_points[-1][2]
                     mtd = 3
-            
+                    print('mtd 3 drone', drone.id, 'time', drone_time)
+                
                 if drone_time < best_drone_time:
                     best_drone_time = drone_time
-                    best_check = checker_drone
-                    best_mtd = mtd
-
-            if best_drone_time < 1e3:
-                for point in best_check.visited_points:
-                    if point[2]> drone.travel_turn:
-                        drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
-
-                        #if best_mtd == 2: (where drone reach wh)
-                            # warehouse.replenish_item 
+                    best_check = test_drone
+                    best_drone = drone
+                    best_mtd=  mtd
                     
-                            
-                        #if best_md == 3: (when drone reaches truck spot )
-                            # drone.wait_for_truck
-                            # truck.repleinsh_drone
-                            # drone.charge_to
+            mtd_cnt = 0
+            if best_drone_time < 1e3:
+                print(best_check.visited_points)
+                for point in best_check.visited_points:
+                    if point[2]> best_drone.travel_turn:
+                        best_drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
                         
-                drone.serve_customer(cust)
+                        
+                        if (best_mtd == 2) & (mtd_cnt ==1): #warehouse point
+                            best_drone.replenish_inve()
+                        if (best_mtd == 3) & (mtd_cnt ==1): # first truck 
+                            #if drone reaches truck , wait till truck arrives, refill inve, charge_to
+                            best_drone.wait((point[0],point[1],point[2]))
+                            trgt_truck.charge_to(best_drone, best_drone.battery_capacity) #CURRENTLY TRGT_TRUCK IS A DRONE NEED TO CHANGE TO THE CHARGING TRUCK
+                            drone.replenish_inve()
+                        mtd_cnt +=1
+                        
+
+                        
+                print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
+
+                best_drone.serve_customer(cust)
+                
                 continue
             
-        
-
             # truck checks    
             best_truck_time = 1e3
             for truck in self.trucks:
-                time = truck.time_to_point(cust)
                 
+                time = truck.time_to_point(cust)
+                #print('truck',truck, 'time', time, 'best time',best_truck_time)
                 if time < best_truck_time:
                     best_truck_time = time
-                    truck_idx = truck.id
+                    best_truck = truck
+            
                     
-            direction = self.trucks[truck_idx].vert_hor(self.customers[c:], cust, self.drones[0])
-            self.trucks[truck_idx].travel_to(cust,direction)
-            self.trucks[truck_idx].serve_customer(cust)
+            direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
+            best_truck.travel_to(cust,direction)
+            best_truck.serve_customer(cust)
+            print('cust',cust.id, 'served by truck', best_truck.id)
                            
         
     def initialize(self):
@@ -810,136 +842,3 @@ class DVRP(object):
         return sum([c.turn_served for c in self.customers])
         #return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
 
-
-
-
-# warehouse0 = Warehouse(
-#     id=0,
-#     type=0,
-#     x=4,
-#     y=3
-# )
-
-# warehouse1 = Warehouse(
-#     id=0,
-#     type=0,
-#     x=5,
-#     y=5
-# )
-
-# warehouse2 = Warehouse(
-#     id=0,
-#     type=0,
-#     x=4,
-#     y=8
-# )
-
-
-# customer0 = Customer(
-#     id=0,
-#     type=1,
-#     x=6,
-#     y=3,
-#     demand=3
-# )
-
-# customer1 = Customer(
-#     id=1,
-#     type=1,
-#     x=2,
-#     y=4,
-#     demand=1
-#     )
-
-# customer2 = Customer(
-#     id=1,
-#     type=1,
-#     x=2,
-#     y=5,
-#     demand=1
-#     )
-
-
-# customer3 = Customer(
-#     id=1,
-#     type=1,
-#     x=3,
-#     y=7,
-#     demand=1
-#     )
-
-# customer4 = Customer(
-#     id=1,
-#     type=1,
-#     x=4,
-#     y=7,
-#     demand=1
-#     )
-
-# customer5 = Customer(
-#     id=1,
-#     type=1,
-#     x=6,
-#     y=10,
-#     demand=1
-#     )
-
-
-# customer6 = Customer(
-#     id=1,
-#     type=1,
-#     x=7,
-#     y=11,
-#     demand=1
-#     )
-
-
-# customer7 = Customer(
-#     id=1,
-#     type=1,
-#     x=14,
-#     y=18,
-#     demand=1
-#     )
-
-# truck0 = Truck(
-#     id=0,
-#     start_node=warehouse0,
-#     speed_factor=1,
-#     item_capacity=10
-# )
-
-# drone0 = Drone(
-#     id=0,
-#     start_node=warehouse0,
-#     speed_factor=1,
-#     item_capacity=2,
-#     battery_capacity=7,
-#     consumption_rate=1,
-#     charging_speed=7
-# )
-
-# drone1 = Drone(
-#     id=0,
-#     start_node=warehouse0,
-#     speed_factor=1,
-#     item_capacity=2,
-#     battery_capacity=7,
-#     consumption_rate=1,
-#     charging_speed=7
-# )
-
-# customers = [customer0, customer1, customer2, customer3, customer4, customer5, customer6, customer7]
-# drones = [drone0, drone1]
-# trucks = [truck0]
-# warehouses = [warehouse0, warehouse1, warehouse2]
-# map_size = 99
-
-
-# dvrp = DVRP(warehouses, customers, trucks, drones, map_size)
-
-# dvrp.trucks[0].travel_to(customers[0],0)
-# dvrp.trucks[0].travel_to(customers[7],1)
-
-# drone_cust_check(drones[0],customers[1],dvrp,1)
-# drone_cust_check(drones[0],customers[1],dvrp,0)
