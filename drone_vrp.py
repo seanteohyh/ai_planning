@@ -784,7 +784,7 @@ class DVRP(object):
                             #if drone reaches truck , wait till truck arrives, refill inve, charge_to
                             best_drone.wait((point[0],point[1],point[2]))
                             trgt_truck.charge_to(best_drone, best_drone.battery_capacity) #CURRENTLY TRGT_TRUCK IS A DRONE NEED TO CHANGE TO THE CHARGING TRUCK
-                            drone.replenish_inve()
+                            best_drone.replenish_inve()
                         mtd_cnt +=1
                         
 
