@@ -17,9 +17,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
 
+
 def draw_animated_output(dvrp):
     fig = plt.figure() 
-    ax = plt.axes(xlim=(-10, 10), ylim=(-10, 10))
+    ax = plt.axes(xlim=(-5, 25), ylim=(-5, 25))
     max_frames = max([c.turn_served for c in dvrp.customers])+2
     
     # scatter plot for warehouses
@@ -95,39 +96,40 @@ def draw_animated_output(dvrp):
 
     anim = animation.FuncAnimation(fig, animate_drones, init_func=init, 
 							frames=max_frames, interval=500, blit=True)
-
+    
+    %matplotlib gt
     plt.show() 
 
-def draw_output(dvrp, turn=0):
-    width = dvrp.map_size[0]
-    height = dvrp.map_size[1]
+# def draw_output(dvrp, turn=0):
+#     width = dvrp.map_size[0]
+#     height = dvrp.map_size[1]
     
-    board = np.zeros((width, height, 3))
-    board += [1.0, 1.0, 1.0] # "Black" color. Can also be a sequence of r,g,b with values 0-1.
-    board[::2, ::2] = [0.0, 0.8, 0.8] # "White" color
-    board[1::2, 1::2] = [0.0, 0.8, 0.8] # "White" color
+#     board = np.zeros((width, height, 3))
+#     board += [1.0, 1.0, 1.0] # "Black" color. Can also be a sequence of r,g,b with values 0-1.
+#     board[::2, ::2] = [0.0, 0.8, 0.8] # "White" color
+#     board[1::2, 1::2] = [0.0, 0.8, 0.8] # "White" color
     
-    fig, ax = plt.subplots()
-    ax.imshow(board, interpolation='nearest')
+#     fig, ax = plt.subplots()
+#     ax.imshow(board, interpolation='nearest')
     
-    for w in dvrp.warehouses:
-        ax.text(w.x, w.y, u'\N{house}', size=15, ha='center', va='center')
+#     for w in dvrp.warehouses:
+#         ax.text(w.x, w.y, u'\N{house}', size=15, ha='center', va='center')
         
-    for c in dvrp.customers:
-        ax.text(c.x, c.y, '😀', size=15, ha='center', va='center')
+#     for c in dvrp.customers:
+#         ax.text(c.x, c.y, '😀', size=15, ha='center', va='center')
         
-    for t in dvrp.trucks:
-        if len(t.visited_points) > turn:
-            ax.text(t.visited_points[turn][0], t.visited_points[turn][1], "🚗", size=15, ha='center', va='center')
+#     for t in dvrp.trucks:
+#         if len(t.visited_points) > turn:
+#             ax.text(t.visited_points[turn][0], t.visited_points[turn][1], "🚗", size=15, ha='center', va='center')
     
-    for d in dvrp.drones:
-        if len(d.visited_points) > turn:
-            ax.text(d.visited_points[turn][0], d.visited_points[turn][1], "drone", size=15, ha='center', va='center') 
+#     for d in dvrp.drones:
+#         if len(d.visited_points) > turn:
+#             ax.text(d.visited_points[turn][0], d.visited_points[turn][1], "drone", size=15, ha='center', va='center') 
     
-    ax.set(xticks=[], yticks=[])
-    ax.axis('image')
+#     ax.set(xticks=[], yticks=[])
+#     ax.axis('image')
     
-    plt.show()
+#     plt.show()
 
 
 def destroy_1(current, random_state):
@@ -142,7 +144,14 @@ def destroy_1(current, random_state):
             the evrp object after destroying
     '''
     # You should code here
+    d = int(random.uniform(1, len(current.customers)/2))
+    rm_list = random.sample(current.customers, d)
+    current.destroyed_nodes = rm_list
     destroyed = current
+
+    for c in destroyed.destroyed_nodes:
+        destroyed.customers.remove(c)
+    
     return destroyed
 
 ### Repair operators ###
@@ -159,19 +168,74 @@ def repair_1(destroyed, random_state):
             the evrp object after repairing
     '''
     # You should code here
+    print()
+    print('in repair')
+    print(f"b4 repair: {[c.id for c in destroyed.customers]}")
+    
+    rm_list = destroyed.destroyed_nodes
+    for c in rm_list:
+        index=random.randint(0,len(destroyed.customers)-1)
+        destroyed.customers.insert(index, c)
+    
     repaired = destroyed
+    repaired.drones = copy.deepcopy(repaired.drone_init)
+    repaired.trucks = copy.deepcopy(repaired.truck_init)
+    
+    print(f"to be repaired: {[c.id for c in rm_list]}")
+    print([c.id for c in repaired.customers])
+    repaired.split_route()
+    
     return repaired
 
 
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "DEFAULT"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
-    
     dvrp = DVRP(parsed.warehouses, parsed.customers, parsed.trucks, parsed.drones, parsed.map_size)
+    
+    # # ## start ##
+    seed = 606
+    dvrp.random_initialize(seed)
+
+    # ALNS
+    random_state = rnd.RandomState(seed)
+    alns = ALNS(random_state)
+    # add destroy
+    alns.add_destroy_operator(destroy_1)
+    # add repair
+    alns.add_repair_operator(repair_1)
+    
+    # run ALNS
+    # select cirterion
+    # criterion = HillClimbing()
+    criterion = SimulatedAnnealing(10, 1, 1)
+
+    # assigning weights to methods
+    omegas = [5.1, 0.1, 0.0001, 0]
+    lambda_ = 1.0
+    result = alns.iterate(dvrp, omegas, lambda_, criterion,
+                          iterations=100, collect_stats=True)
+
+    # result
+    solution = result.best_state
+    objective = solution.objective()
+    print('Best heuristic objective is {}.'.format(objective))
+    draw_animated_output(solution)
+        
+    
+    # For testing 
+    # dvrp.split_route()
+    # draw_animated_output(dvrp)
+
+    
+    
+    
+    
+    
     # for w in dvrp.warehouses:
     #     print(w)
     # for c in dvrp.customers:
@@ -181,114 +245,82 @@ if __name__ == '__main__':
     # for d in dvrp.drones:
     #     print(d)
 
-    warehouses = [
-        Warehouse(
-            id=0,
-            type=0,
-            x=0,
-            y=0
-        ),
-        Warehouse(
-            id=1,
-            type=0,
-            x=6,
-            y=6
-        ),
-        Warehouse(
-            id=2,
-            type=0,
-            x=-6,
-            y=-6
-        )
-    ]
+    # warehouses = [
+    #     Warehouse(
+    #         id=0,
+    #         type=0,
+    #         x=0,
+    #         y=0
+    #     ),
+    #     Warehouse(
+    #         id=1,
+    #         type=0,
+    #         x=6,
+    #         y=6
+    #     ),
+    #     Warehouse(
+    #         id=2,
+    #         type=0,
+    #         x=-6,
+    #         y=-6
+    #     )
+    # ]
 
-    customers = [
-        Customer(
-            id=0,
-            type=1,
-            x=2,
-            y=2,
-            demand=1
-        ),
-        Customer(
-            id=1,
-            type=1,
-            x=1,
-            y=1,
-            demand=1
-        ),
-        Customer(
-            id=2,
-            type=1,
-            x=2,
-            y=1,
-            demand=1
-        )
-    ]
+    # customers = [
+    #     Customer(
+    #         id=0,
+    #         type=1,
+    #         x=2,
+    #         y=2,
+    #         demand=1
+    #     ),
+    #     Customer(
+    #         id=1,
+    #         type=1,
+    #         x=1,
+    #         y=1,
+    #         demand=1
+    #     ),
+    #     Customer(
+    #         id=2,
+    #         type=1,
+    #         x=2,
+    #         y=1,
+    #         demand=1
+    #     )
+    # ]
     
-    trucks = [
-        Truck(
-            id=0,
-            start_node=warehouses[0],
-            speed_factor=1,
-            item_capacity=10
-        )
-    ]
+    # trucks = [
+    #     Truck(
+    #         id=0,
+    #         start_node=warehouses[0],
+    #         speed_factor=1,
+    #         item_capacity=10
+    #     )
+    # ]
 
-    drones = [
-        Drone(
-            id=0,
-            start_node=warehouses[0],
-            speed_factor=1,
-            item_capacity=2,
-            battery_capacity=5,
-            consumption_rate=1,
-            charging_speed=5
-        )
-    ]
+    # drones = [
+    #     Drone(
+    #         id=0,
+    #         start_node=warehouses[0],
+    #         speed_factor=1,
+    #         item_capacity=2,
+    #         battery_capacity=5,
+    #         consumption_rate=1,
+    #         charging_speed=5
+    #     )
+    # ]
 
-    dvrp = DVRP(warehouses=warehouses, customers=customers, trucks=trucks, drones=drones, map_size=100)
+    # dvrp = DVRP(warehouses=warehouses, customers=customers, trucks=trucks, drones=drones, map_size=100)
 
     # checker = drones[0].check_wh(dvrp.warehouses).check_cust(dvrp.customers[0]).check_truck(dvrp.trucks)
     # print(checker.evaluate())
     # print(checker.drone)
-
-    dvrp.split_route()
     
-    for drone in dvrp.drones:
-        print(drone)
-
-    for truck in dvrp.trucks:
-        print(truck)
-
-    draw_animated_output(dvrp)
-
-    # # ## start ##
+    
     # dvrp.initialize()
     # for t in dvrp.trucks:
     #     print(f"\n{t}")
     
     # for i in range(dvrp.objective()):
     #     draw_output(dvrp, i)
-        
-    # # ALNS
-    # random_state = rnd.RandomState(606)
-    # alns = ALNS(random_state)
-    # # add destroy
-    # alns.add_destroy_operator(destroy_1)
-    # # add repair
-    # alns.add_repair_operator(repair_1)
-    
-    # # run ALNS
-    # # select cirterion
-    # criterion = HillClimbing()
-    # # assigning weights to methods
-    # omegas = [3.0, 2.0, 1.0, 0]
-    # lambda_ = 0.2
-    # result = alns.iterate(dvrp, omegas, lambda_, criterion,
-    #                       iterations=10, collect_stats=True)
-
-    # # result
-    # solution = result.best_state
-    # objective = solution.objective()
-    # print('Best heuristic objective is {}.'.format(objective))
