@@ -147,7 +147,7 @@ def randomDestroy(current, random_state):
             the evrp object after destroying
     '''
     # You should code here
-    d = int(random.uniform(1, len(current.customers)/10))
+    d = int(random.uniform(1, len(current.customers)/5))
     rm_list = random.sample(current.customers, d)
     current.destroyed_nodes = rm_list
     destroyed = current
@@ -164,21 +164,22 @@ def WorseDestroy(current, random_state):
     curr_score = current.objective()
     
     for c in current.customers:
-        dvrp_cp = copy.deepcopy(current)
-        dvrp_cp.customers.remove([cust for cust in dvrp_cp.customers if cust.id == c.id][0])
-        dvrp_cp.split_route()
-        scores[c.id] = curr_score - dvrp_cp.objective()
+        dvrp_ = copy.deepcopy(current)
+        dvrp_.customers.remove([cust for cust in dvrp_.customers if cust.id == c.id][0])
+        dvrp_.split_route()
+        scores[c.id] = curr_score - dvrp_.objective()
         
     sorted_id = {k: v for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)}
-    d = int(random.uniform(1, len(current.customers)/3))
+    d = int(random.uniform(1, len(current.customers)/5))
     worse_n =  [k for k in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:d]]
     rm_list = [c[0] for c in worse_n]
     
     destroyed = current
 
     for c_id in rm_list:
-        current.destroyed_nodes.append([cust for cust in destroyed.customers if cust.id == c_id][0])
-        destroyed.customers.remove([cust for cust in destroyed.customers if cust.id == c_id][0])
+        destroyed_cust = [c for c in destroyed.customers if c.id == c_id][0]
+        current.destroyed_nodes.append(destroyed_cust)
+        destroyed.customers.remove(destroyed_cust)
     
     return destroyed
 
@@ -197,10 +198,6 @@ def randomRepair(destroyed, random_state):
             the evrp object after repairing
     '''
     # You should code here
-    print()
-    print('in repair')
-    print(f"b4 repair: {[c.id for c in destroyed.customers]}")
-    
     rm_list = destroyed.destroyed_nodes
     for c in rm_list:
         index=random.randint(0,len(destroyed.customers)-1)
@@ -210,7 +207,7 @@ def randomRepair(destroyed, random_state):
     repaired.drones = copy.deepcopy(repaired.drone_init)
     repaired.trucks = copy.deepcopy(repaired.truck_init)
     
-    print(f"to be repaired: {[c.id for c in rm_list]}")
+    print(f"\nto be repaired: {[c.id for c in rm_list]}")
     print([c.id for c in repaired.customers])
     repaired.split_route()
     
@@ -281,8 +278,8 @@ if __name__ == '__main__':
     criterion = SimulatedAnnealing(10, 1, 1)
 
     # assigning weights to methods
-    omegas = [0.01, 0.01, 5.1, 0]
-    lambda_ = 0.9
+    omegas = [5.0, 3.0, 0.1, 0]
+    lambda_ = 0.1
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
                           iterations=8, collect_stats=True)
 
