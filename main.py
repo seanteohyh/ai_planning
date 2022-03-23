@@ -19,8 +19,10 @@ import matplotlib.animation as animation
 
 
 def draw_animated_output(dvrp):
+    width = dvrp.map_size[0]
+    height = dvrp.map_size[1]
     fig = plt.figure() 
-    ax = plt.axes(xlim=(-5, 25), ylim=(-5, 25))
+    ax = plt.axes(xlim=(-5, width+5), ylim=(-5, height+5))
     max_frames = max([c.turn_served for c in dvrp.customers])+2
     
     # scatter plot for warehouses
@@ -38,7 +40,7 @@ def draw_animated_output(dvrp):
     )
 
     # scatter plot for customers
-    c = [(c.x, c.y) for c in dvrp.customers]
+    c = [(c.x, c.y, c.id) for c in dvrp.customers]
     c_x = [i[0] for i in c]
     c_y = [i[1] for i in c]
     plt.scatter(
@@ -50,6 +52,7 @@ def draw_animated_output(dvrp):
         edgecolor ="green",
         s = 200
     )    
+    
 
     # lines for trucks and drones
     lines = []
@@ -95,7 +98,7 @@ def draw_animated_output(dvrp):
         return lines
 
     anim = animation.FuncAnimation(fig, animate_drones, init_func=init, 
-							frames=max_frames, interval=500, blit=True)
+							frames=max_frames, interval=50, blit=True)
     
     %matplotlib gt
     plt.show() 
@@ -132,7 +135,7 @@ def draw_animated_output(dvrp):
 #     plt.show()
 
 
-def destroy_1(current, random_state):
+def randomDestroy(current, random_state):
     ''' Destroy operator sample (name of the function is free to change)
     Args:
         current::DVRP
@@ -144,7 +147,7 @@ def destroy_1(current, random_state):
             the evrp object after destroying
     '''
     # You should code here
-    d = int(random.uniform(1, len(current.customers)/2))
+    d = int(random.uniform(1, len(current.customers)/10))
     rm_list = random.sample(current.customers, d)
     current.destroyed_nodes = rm_list
     destroyed = current
@@ -154,9 +157,35 @@ def destroy_1(current, random_state):
     
     return destroyed
 
+
+# define worse destory action
+def WorseDestroy(current, random_state):
+    scores={}
+    curr_score = current.objective()
+    
+    for c in current.customers:
+        dvrp_cp = copy.deepcopy(current)
+        dvrp_cp.customers.remove([cust for cust in dvrp_cp.customers if cust.id == c.id][0])
+        dvrp_cp.split_route()
+        scores[c.id] = curr_score - dvrp_cp.objective()
+        
+    sorted_id = {k: v for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)}
+    d = int(random.uniform(1, len(current.customers)/3))
+    worse_n =  [k for k in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:d]]
+    rm_list = [c[0] for c in worse_n]
+    
+    destroyed = current
+
+    for c_id in rm_list:
+        current.destroyed_nodes.append([cust for cust in destroyed.customers if cust.id == c_id][0])
+        destroyed.customers.remove([cust for cust in destroyed.customers if cust.id == c_id][0])
+    
+    return destroyed
+
+
 ### Repair operators ###
 # You can follow the example and implement repair_2, repair_3, etc
-def repair_1(destroyed, random_state):
+def randomRepair(destroyed, random_state):
     ''' repair operator sample (name of the function is free to change)
     Args:
         destroyed::DVRP
@@ -188,6 +217,43 @@ def repair_1(destroyed, random_state):
     return repaired
 
 
+def GreedyRepair(destroyed, random_state):
+    rm_list = destroyed.destroyed_nodes
+    print(f"\nto be repaired: {[c.id for c in rm_list]}")
+    print([c.id for c in destroyed.customers])
+    
+    #insert
+    while len(rm_list)>0:
+        cust, insert_index = findGreedyInsert(destroyed)
+        destroyed.customers.insert(insert_index, cust)
+        rm_list.remove(cust)
+    
+    repaired = destroyed
+    repaired.drones = copy.deepcopy(repaired.drone_init)
+    repaired.trucks = copy.deepcopy(repaired.truck_init)
+    
+    repaired.split_route()
+    
+    return repaired
+
+def findGreedyInsert(dvrp):
+    best_insert_node_no=None
+    best_insert_index = None
+    best_insert_cost = float('inf')
+    curr_score = dvrp.objective()
+    for c in dvrp.destroyed_nodes:
+        for i in range(len(dvrp.customers)):
+            dvrp_ = copy.deepcopy(dvrp)
+            dvrp_.customers.insert(i, [cust for cust in dvrp_.destroyed_nodes if cust.id == c.id][0])
+            dvrp_.split_route()
+            score = dvrp_.objective()
+            if score < best_insert_cost:
+                best_insert_index = i
+                best_insert_node_no = c
+                best_insert_cost = score - curr_score
+    return best_insert_node_no, best_insert_index
+
+
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
@@ -205,9 +271,9 @@ if __name__ == '__main__':
     random_state = rnd.RandomState(seed)
     alns = ALNS(random_state)
     # add destroy
-    alns.add_destroy_operator(destroy_1)
+    alns.add_destroy_operator(WorseDestroy)
     # add repair
-    alns.add_repair_operator(repair_1)
+    alns.add_repair_operator(GreedyRepair)
     
     # run ALNS
     # select cirterion
@@ -215,10 +281,10 @@ if __name__ == '__main__':
     criterion = SimulatedAnnealing(10, 1, 1)
 
     # assigning weights to methods
-    omegas = [5.1, 0.1, 0.0001, 0]
-    lambda_ = 1.0
+    omegas = [0.01, 0.01, 5.1, 0]
+    lambda_ = 0.9
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=100, collect_stats=True)
+                          iterations=8, collect_stats=True)
 
     # result
     solution = result.best_state
