@@ -564,7 +564,7 @@ class Drone(Vehicle):
                 checker = CheckerDrone(copy.deepcopy(self)) 
                 checker.travel_to_truck(Point(point[0], point[1]), truck)
                 
-                if checker.drone.visited_points[-1][2] == point[2] and checker.drone.battery_level >= 0:
+                if checker.drone.visited_points[-1][2] <= point[2] and checker.drone.battery_level >= 0:
                     if checker.drone.travel_turn < min_turn:
                         min_turn = checker.drone.travel_turn
                         target_truck = truck 
@@ -825,7 +825,7 @@ class DVRP(object):
                         
                 print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
 
-                best_drone.serve_customer(cust)
+                # best_drone.serve_customer(cust)
                 
                 continue
             
