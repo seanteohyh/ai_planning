@@ -745,6 +745,7 @@ class DVRP(object):
 
     def split_route(self):
         ''' Future Initialization for construction heuristic'''
+        self.destroyed_nodes= []
 
         for c in range(len(self.customers)):
             cust = self.customers[c]
@@ -765,14 +766,14 @@ class DVRP(object):
                     test_drone = drone.check_cust(cust)
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 1
-                    print('mtd 1 drone',drone.id,' time', drone_time)
+                    # print('mtd 1 drone',drone.id,' time', drone_time)
                     
                 # 2. drone- warehouse - cust- truck check  
                 elif drone.check_wh(self.warehouses).check_cust(cust).check_truck(self.trucks).evaluate():
                     test_drone = drone.check_wh(self.warehouses).check_cust(cust)
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 2
-                    print('mtd 2 drone', drone.id,' time', drone_time)
+                    # print('mtd 2 drone', drone.id,' time', drone_time)
 
                 # 3. drone - truck - cust- truck check
                 elif drone.check_truck(self.trucks).check_cust(cust).check_truck(self.trucks).evaluate():
@@ -780,7 +781,7 @@ class DVRP(object):
                     trgt_truck = test_drone.target_truck
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 3
-                    print('mtd 3 drone', drone.id, 'time', drone_time)
+                    # print('mtd 3 drone', drone.id, 'time', drone_time)
                 
                 if drone_time < best_drone_time:
                     best_drone_time = drone_time
@@ -821,7 +822,7 @@ class DVRP(object):
                         
 
                         
-                print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
+                # print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
 
                 # best_drone.serve_customer(cust)
                 
@@ -840,7 +841,7 @@ class DVRP(object):
             direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
             best_truck.travel_to(cust,direction)
             best_truck.serve_customer(cust)
-            print('cust',cust.id, 'served by truck', best_truck.id)
+            # print('cust',cust.id, 'served by truck', best_truck.id)
                   
             
     def random_initialize(self, seed=None):

@@ -102,40 +102,9 @@ def draw_animated_output(dvrp):
     # %matplotlib gt
     plt.show() 
 
-# def draw_output(dvrp, turn=0):
-#     width = dvrp.map_size[0]
-#     height = dvrp.map_size[1]
-    
-#     board = np.zeros((width, height, 3))
-#     board += [1.0, 1.0, 1.0] # "Black" color. Can also be a sequence of r,g,b with values 0-1.
-#     board[::2, ::2] = [0.0, 0.8, 0.8] # "White" color
-#     board[1::2, 1::2] = [0.0, 0.8, 0.8] # "White" color
-    
-#     fig, ax = plt.subplots()
-#     ax.imshow(board, interpolation='nearest')
-    
-#     for w in dvrp.warehouses:
-#         ax.text(w.x, w.y, u'\N{house}', size=15, ha='center', va='center')
-        
-#     for c in dvrp.customers:
-#         ax.text(c.x, c.y, '😀', size=15, ha='center', va='center')
-        
-#     for t in dvrp.trucks:
-#         if len(t.visited_points) > turn:
-#             ax.text(t.visited_points[turn][0], t.visited_points[turn][1], "🚗", size=15, ha='center', va='center')
-    
-#     for d in dvrp.drones:
-#         if len(d.visited_points) > turn:
-#             ax.text(d.visited_points[turn][0], d.visited_points[turn][1], "drone", size=15, ha='center', va='center') 
-    
-#     ax.set(xticks=[], yticks=[])
-#     ax.axis('image')
-    
-#     plt.show()
-
 
 def randomDestroy(current, random_state):
-    ''' Destroy operator sample (name of the function is free to change)
+    ''' randomly destroys 20% of customer nodes. Remove 1 only if there are less than 5 customers.
     Args:
         current::DVRP
             an DVRP object before destroying
@@ -147,8 +116,7 @@ def randomDestroy(current, random_state):
     '''
     # You should code here
     destroyed = copy.deepcopy(current)
-
-    if round(len(destroyed.customers)*0.2) < 5:
+    if round(len(destroyed.customers)) < 5:
         destroyed.destroyed_nodes.append(destroyed.customers.pop(random_state.randint(0,len(destroyed.customers))))
     else:
         for _ in range(round(len(destroyed.customers)*0.2)):
@@ -156,6 +124,16 @@ def randomDestroy(current, random_state):
     return destroyed
 
 def greedyDestroy(current, random_state):
+    ''' Greedily destroys the customer which gives the biggest reduction in total distance of the perturbed tour
+    Args:
+        current::DVRP
+            an DVRP object before destroying
+        random_state::numpy.random.RandomState
+            a random state specified by the random seed
+    Returns:
+        destroyed::DVRP
+            the evrp object after destroying
+    '''
     destroyed = copy.deepcopy(current)
     max_dist = -1
     for i in range(0,len(destroyed.customers)):
@@ -202,7 +180,7 @@ def WorseDestroy(current, random_state):
 ### Repair operators ###
 # You can follow the example and implement repair_2, repair_3, etc
 def randomRepair(destroyed, random_state):
-    ''' repair operator sample (name of the function is free to change)
+    ''' randomly inserts destroyed nodes into existing customer sequence
     Args:
         destroyed::DVRP
             an DVRP object after destroying
@@ -212,15 +190,25 @@ def randomRepair(destroyed, random_state):
         repaired::DVRP
             the evrp object after repairing
     '''
-    # You should code here  
+    # You should code here
     repaired = copy.deepcopy(destroyed)
-    for c in repaired.destroyed_nodes:
-        repaired.customers.insert(random_state.randint(0,len(repaired.customers)), c)
+    while repaired.destroyed_nodes:
+        repaired.customers.insert(random_state.randint(0,len(repaired.customers)), repaired.destroyed_nodes.pop())
     repaired.split_route()
     return repaired
 
 
 def greedyRepair(destroyed, random_state):
+    ''' greedily inserts destroyed nodes into existing customer sequence such that we obtain the smallest increase in total distance of the perturbed tour
+    Args:
+        destroyed::DVRP
+            an DVRP object after destroying
+        random_state::numpy.random.RandomState
+            a random state specified by the random seed
+    Returns:
+        repaired::DVRP
+            the evrp object after repairing
+    '''
     repaired = copy.deepcopy(destroyed)
     for c in repaired.destroyed_nodes:
         max_dist = -1e9
@@ -242,7 +230,7 @@ def greedyRepair(destroyed, random_state):
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-complex"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -251,6 +239,7 @@ if __name__ == '__main__':
     # # ## start ##
     seed = 606
     dvrp.random_initialize(seed)
+    initial_objective = dvrp.objective()
 
     # ALNS
     random_state = rnd.RandomState(seed)
@@ -265,119 +254,21 @@ if __name__ == '__main__':
     # run ALNS
     # select cirterion
     # criterion = HillClimbing()
-    criterion = SimulatedAnnealing(10, 1, 1)
+    criterion = SimulatedAnnealing(10000, 1000, 10)
 
     # assigning weights to methods
     omegas = [5.0, 3.0, 0.1, 0]
-    lambda_ = 0.1
+    lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=1, collect_stats=True)
+                          iterations=10, collect_stats=True)
 
     # result
     solution = result.best_state
     objective = solution.objective()
+    print('Initial objective is {}.'.format(initial_objective))    
     print('Best heuristic objective is {}.'.format(objective))
     draw_animated_output(solution)
+
+    # for drone in solution.drones:
+    #     print(drone)
         
-    
-    
-    
-    # For testing 
-    # dvrp.split_route()
-    # draw_animated_output(dvrp)
-
-    
-    
-    
-    
-    
-    
-    
-    # for w in dvrp.warehouses:
-    #     print(w)
-    # for c in dvrp.customers:
-    #     print(c)
-    # for t in dvrp.trucks:
-    #     print(t)
-    # for d in dvrp.drones:
-    #     print(d)
-
-    # warehouses = [
-    #     Warehouse(
-    #         id=0,
-    #         type=0,
-    #         x=0,
-    #         y=0
-    #     ),
-    #     Warehouse(
-    #         id=1,
-    #         type=0,
-    #         x=6,
-    #         y=6
-    #     ),
-    #     Warehouse(
-    #         id=2,
-    #         type=0,
-    #         x=-6,
-    #         y=-6
-    #     )
-    # ]
-
-    # customers = [
-    #     Customer(
-    #         id=0,
-    #         type=1,
-    #         x=2,
-    #         y=2,
-    #         demand=1
-    #     ),
-    #     Customer(
-    #         id=1,
-    #         type=1,
-    #         x=1,
-    #         y=1,
-    #         demand=1
-    #     ),
-    #     Customer(
-    #         id=2,
-    #         type=1,
-    #         x=2,
-    #         y=1,
-    #         demand=1
-    #     )
-    # ]
-    
-    # trucks = [
-    #     Truck(
-    #         id=0,
-    #         start_node=warehouses[0],
-    #         speed_factor=1,
-    #         item_capacity=10
-    #     )
-    # ]
-
-    # drones = [
-    #     Drone(
-    #         id=0,
-    #         start_node=warehouses[0],
-    #         speed_factor=1,
-    #         item_capacity=2,
-    #         battery_capacity=5,
-    #         consumption_rate=1,
-    #         charging_speed=5
-    #     )
-    # ]
-
-    # dvrp = DVRP(warehouses=warehouses, customers=customers, trucks=trucks, drones=drones, map_size=100)
-
-    # checker = drones[0].check_wh(dvrp.warehouses).check_cust(dvrp.customers[0]).check_truck(dvrp.trucks)
-    # print(checker.evaluate())
-    # print(checker.drone)
-    
-    
-    # dvrp.initialize()
-    # for t in dvrp.trucks:
-    #     print(f"\n{t}")
-    
-    # for i in range(dvrp.objective()):
-    #     draw_output(dvrp, i)
