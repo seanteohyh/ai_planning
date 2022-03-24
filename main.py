@@ -166,7 +166,7 @@ def repair_1(destroyed, random_state):
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "DEFAULT"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -262,6 +262,7 @@ if __name__ == '__main__':
         print(truck)
 
     draw_animated_output(dvrp)
+    print('OBJECTIVE',dvrp.objective())
 
     # # ## start ##
     # dvrp.initialize()
