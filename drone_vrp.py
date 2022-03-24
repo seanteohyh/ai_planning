@@ -564,7 +564,7 @@ class Drone(Vehicle):
                 checker = CheckerDrone(copy.deepcopy(self)) 
                 checker.travel_to_truck(Point(point[0], point[1]), truck)
                 
-                if checker.drone.visited_points[-1][2] == point[2] and checker.drone.battery_level >= 0:
+                if checker.drone.visited_points[-1][2] <= point[2] and checker.drone.battery_level >= 0:
                     if checker.drone.travel_turn < min_turn:
                         min_turn = checker.drone.travel_turn
                         target_truck = truck 
