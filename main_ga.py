@@ -1,4 +1,4 @@
-from main import draw_animated_output, draw_output
+from main_alns import draw_animated_output
 from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 import time

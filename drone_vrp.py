@@ -6,7 +6,7 @@ import json
 import copy
 from scipy.spatial.distance import cdist, pdist
 import numpy as np
-
+import random
 
 
 class Parser(object):
@@ -39,13 +39,14 @@ class Parser(object):
     def set_trucks(self):
         for truck in json.loads(self.config['trucks']):
             self.trucks.append(Truck(int(truck['id']), self.warehouses[int(truck['warehouse'])], 
-                                   int(truck['speed_factor']), int(truck['item_capacity'])))
+                                   int(truck['speed_factor'])))
             
     def set_drones(self):
         for drone in json.loads(self.config['drones']):
             self.drones.append(Drone(int(drone['id']), self.warehouses[int(drone['warehouse'])], 
                                    int(drone['speed_factor']), int(drone['item_capacity']), int(drone['battery_capacity']),
                                    int(drone['consumption_rate']), int(drone['charging_speed'])))
+        
         
 class Point(object):
 
@@ -155,7 +156,7 @@ class Customer(Node):
         
 class Vehicle(object):
     
-    def __init__(self, id, start_node, speed_factor, item_capacity):
+    def __init__(self, id, start_node, speed_factor):
         ''' Initialize the vehicle
         Args:
             id::int
@@ -164,14 +165,10 @@ class Vehicle(object):
                 starting node of the vehicle
             speed_factor::int
                 speed factor of the vehicle
-            item_capacity::int
-                item capacity of the vehicle
         '''
         self.id = id
         self.start_node = start_node
         self.speed_factor = speed_factor
-        self.item_capacity = item_capacity
-        self.items = item_capacity
         # travel time of the vehicle
         self.travel_turn = 0
         # all the (points, time) including warehouse, customers, or waiting point visited by the vehicle::[(x1,y1,t1), (x2,y2,t2)]
@@ -194,16 +191,16 @@ class Vehicle(object):
             customer::Customer object
         '''
         current_x, current_y, current_t = self.visited_points[-1]
-        assert(self.items >= customer.demand)
+        # assert(self.items >= customer.demand)
         assert(current_x == customer.x)
         assert(current_y == customer.y)
-        self.items -= customer.demand
+        # self.items -= customer.demand
         customer.turn_served = current_t  
         
         
 class Truck(Vehicle):
     
-    def __init__(self, id, start_node, speed_factor, item_capacity):
+    def __init__(self, id, start_node, speed_factor):
         ''' Initialize a truck
         Args:
             id::int
@@ -212,10 +209,8 @@ class Truck(Vehicle):
                 starting node of the truck
             speed_factor::int
                 speed factor of the truck
-            item_capacity::int
-                item capacity of the truck
         '''
-        super(Truck, self).__init__(id, start_node, speed_factor, item_capacity)
+        super(Truck, self).__init__(id, start_node, speed_factor)
         self.wait = False
         self.half_turn = True
 
@@ -315,8 +310,8 @@ class Truck(Vehicle):
             amt = 0
         else:
             amt = x - drone.items
-        assert(self.items >= amt)
-        self.items -= amt
+        # assert(self.items >= amt)
+        # self.items -= amt
         drone.items += amt
     
 
@@ -420,7 +415,9 @@ class Drone(Vehicle):
                  charging speed of the drone: how much battery level recovered per turn charged
         '''
    
-        super(Drone, self).__init__(id, start_node, speed_factor, item_capacity)        
+        super(Drone, self).__init__(id, start_node, speed_factor) 
+        self.item_capacity = item_capacity
+        self.items = item_capacity
         self.battery_capacity = battery_capacity
         self.consumption_rate = consumption_rate
         self.charging_speed = charging_speed
@@ -668,9 +665,10 @@ class DVRP(object):
         self.map_size = map_size
         
         # record the all the customers who have been visited by all the vehicles, eg. [Customer1, Customer2, ..., Customer7, Customer8]
-        self.customer_visited = []
+        self.truck_init = copy.deepcopy(trucks)
+        self.drone_init = copy.deepcopy(drones)
         # record the unvisited customers, eg. [Customer9, Customer10]
-        self.customer_unvisited = copy.deepcopy(customers)
+        self.destroyed_nodes = []
 
     # def charge_required(source, dest):
     #     '''Check charge or time required to travel from one point to another
@@ -843,29 +841,45 @@ class DVRP(object):
             best_truck.travel_to(cust,direction)
             best_truck.serve_customer(cust)
             print('cust',cust.id, 'served by truck', best_truck.id)
-                           
-        
-    def initialize(self):
-        ''' Initialize the state with construction heuristic
-        Evenly distribute customers to each truck if sufficient capacity, restock otherwise
-        Truck returns to starting warehouse after all customers served
+                  
+            
+    def random_initialize(self, seed=None):
+        ''' Randomly initialize the state with split_route() (your construction heuristic)
+        Args:
+            seed::int
+                random seed
         Returns:
             objective::float
                 objective value of the state
         '''
-        while self.customer_unvisited != []:
-            for t in self.trucks:
-                cust = self.customer_unvisited[0]
-                if t.items >= cust.demand:
-                    t.travel_to(Point(cust.x, cust.y), False)
-                    t.serve_customer(cust)
-                    self.customer_visited.append(self.customer_unvisited.remove(cust))
-                else:
-                    t.travel_to(Point(t.start_node.x, t.start_node.y), False)
-                    t.items = t.item_capacity
-        for t in self.trucks:
-            t.travel_to(Point(t.start_node.x, t.start_node.y), False)
+        if seed is not None:
+            random.seed(606)
+        # random_tour = copy.deepcopy(self.customers)
+        # random.shuffle(random_tour)
+        self.split_route()
         return self.objective()
+        
+    # def initialize(self):
+    #     ''' Initialize the state with construction heuristic
+    #     Evenly distribute customers to each truck if sufficient capacity, restock otherwise
+    #     Truck returns to starting warehouse after all customers served
+    #     Returns:
+    #         objective::float
+    #             objective value of the state
+    #     '''
+    #     while self.customer_unvisited != []:
+    #         for t in self.trucks:
+    #             cust = self.customer_unvisited[0]
+    #             if t.items >= cust.demand:
+    #                 t.travel_to(Point(cust.x, cust.y), False)
+    #                 t.serve_customer(cust)
+    #                 self.customer_visited.append(self.customer_unvisited.remove(cust))
+    #             else:
+    #                 t.travel_to(Point(t.start_node.x, t.start_node.y), False)
+    #                 t.items = t.item_capacity
+    #     for t in self.trucks:
+    #         t.travel_to(Point(t.start_node.x, t.start_node.y), False)
+    #     return self.objective()
         
     def objective(self):
         ''' Calculate the objective value of the state
