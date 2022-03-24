@@ -146,15 +146,31 @@ def randomDestroy(current, random_state):
             the evrp object after destroying
     '''
     # You should code here
-    d = int(random.uniform(1, len(current.customers)/5))
-    rm_list = random.sample(current.customers, d)
-    current.destroyed_nodes = rm_list
-    destroyed = current
+    destroyed = copy.deepcopy(current)
 
-    for c in destroyed.destroyed_nodes:
-        destroyed.customers.remove(c)
-    
+    if round(len(destroyed.customers)*0.2) < 5:
+        destroyed.destroyed_nodes.append(destroyed.customers.pop(random_state.randint(0,len(destroyed.customers))))
+    else:
+        for _ in range(round(len(destroyed.customers)*0.2)):
+            destroyed.destroyed_nodes.append(destroyed.customers.pop(random_state.randint(0,len(destroyed.customers))))
     return destroyed
+
+def greedyDestroy(current, random_state):
+    destroyed = copy.deepcopy(current)
+    max_dist = -1
+    for i in range(0,len(destroyed.customers)):
+        i_minus_1 = (i-1)%len(destroyed.customers)
+        i_plus_1 = (i+1)%len(destroyed.customers)
+        distance = (
+            ((destroyed.customers[i].x - destroyed.customers[i_minus_1].x)**2 + (destroyed.customers[i].y - destroyed.customers[i_minus_1].y)**2)**0.5 +
+            ((destroyed.customers[i].x - destroyed.customers[i_plus_1].x)**2 + (destroyed.customers[i].y - destroyed.customers[i_plus_1].y)**2)**0.5 - 
+            ((destroyed.customers[i_minus_1].x - destroyed.customers[i_plus_1].x)**2 + (destroyed.customers[i_minus_1].y - destroyed.customers[i_plus_1].y)**2)**0.5
+        )
+        if distance > max_dist:
+            max_dist = distance
+            target = i
+    destroyed.destroyed_nodes.append(destroyed.customers.pop(target))
+    return destroyed    
 
 
 # define worse destory action
@@ -196,58 +212,31 @@ def randomRepair(destroyed, random_state):
         repaired::DVRP
             the evrp object after repairing
     '''
-    # You should code here
-    rm_list = destroyed.destroyed_nodes
-    for c in rm_list:
-        index=random.randint(0,len(destroyed.customers)-1)
-        destroyed.customers.insert(index, c)
-    
-    repaired = destroyed
-    repaired.drones = copy.deepcopy(repaired.drone_init)
-    repaired.trucks = copy.deepcopy(repaired.truck_init)
-    
-    print(f"\nto be repaired: {[c.id for c in rm_list]}")
-    print([c.id for c in repaired.customers])
+    # You should code here  
+    repaired = copy.deepcopy(destroyed)
+    for c in repaired.destroyed_nodes:
+        repaired.customers.insert(random_state.randint(0,len(repaired.customers)), c)
     repaired.split_route()
-    
     return repaired
 
 
-def GreedyRepair(destroyed, random_state):
-    rm_list = destroyed.destroyed_nodes
-    print(f"\nto be repaired: {[c.id for c in rm_list]}")
-    print([c.id for c in destroyed.customers])
-    
-    #insert
-    while len(rm_list)>0:
-        cust, insert_index = findGreedyInsert(destroyed)
-        destroyed.customers.insert(insert_index, cust)
-        rm_list.remove(cust)
-    
-    repaired = destroyed
-    repaired.drones = copy.deepcopy(repaired.drone_init)
-    repaired.trucks = copy.deepcopy(repaired.truck_init)
-    
+def greedyRepair(destroyed, random_state):
+    repaired = copy.deepcopy(destroyed)
+    for c in repaired.destroyed_nodes:
+        max_dist = -1e9
+        for i in range(0,len(repaired.customers)):
+            i_plus_1 = (i+1)%len(repaired.customers)
+            distance = (
+                ((repaired.customers[i].x - repaired.customers[i_plus_1].x)**2 + (repaired.customers[i].y - repaired.customers[i_plus_1].y)**2)**0.5 -
+                ((c.x - repaired.customers[i].x)**2 + (c.y - repaired.customers[i].y)**2)**0.5 -
+                ((c.x - repaired.customers[i_plus_1].x)**2 + (c.y - repaired.customers[i_plus_1].y)**2)**0.5 
+            )
+            if distance > max_dist:
+                target = i_plus_1
+                max_dist = distance
+        repaired.customers.insert(target, c)
     repaired.split_route()
-    
     return repaired
-
-def findGreedyInsert(dvrp):
-    best_insert_node_no=None
-    best_insert_index = None
-    best_insert_cost = float('inf')
-    curr_score = dvrp.objective()
-    for c in dvrp.destroyed_nodes:
-        for i in range(len(dvrp.customers)):
-            dvrp_ = copy.deepcopy(dvrp)
-            dvrp_.customers.insert(i, [cust for cust in dvrp_.destroyed_nodes if cust.id == c.id][0])
-            dvrp_.split_route()
-            score = dvrp_.objective()
-            if score < best_insert_cost:
-                best_insert_index = i
-                best_insert_node_no = c
-                best_insert_cost = score - curr_score
-    return best_insert_node_no, best_insert_index
 
 
 if __name__ == '__main__':
@@ -268,8 +257,10 @@ if __name__ == '__main__':
     alns = ALNS(random_state)
     # add destroy
     alns.add_destroy_operator(randomDestroy)
+    alns.add_destroy_operator(greedyDestroy)
     # add repair
     alns.add_repair_operator(randomRepair)
+    alns.add_repair_operator(greedyRepair)
     
     # run ALNS
     # select cirterion
