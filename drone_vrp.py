@@ -825,7 +825,7 @@ class DVRP(object):
                         
                 print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
 
-                best_drone.serve_customer(cust)
+                # best_drone.serve_customer(cust)
                 
                 continue
             
