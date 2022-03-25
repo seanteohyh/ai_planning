@@ -280,7 +280,7 @@ if __name__ == '__main__':
     # add repair
     alns.add_repair_operator(randomRepair)
     alns.add_repair_operator(greedyRepair)
-    alns.add_repair_operator(nearidxRepair)
+    # alns.add_repair_operator(nearidxRepair)
     
     # run ALNS
     # select cirterion
@@ -288,10 +288,10 @@ if __name__ == '__main__':
     criterion = SimulatedAnnealing(10000, 100, 100)
 
     # assigning weights to methods
-    omegas = [5.0, 3.0, 1.0, 0]
+    omegas = [5.0, 3.0, 0.5, 0]
     lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=5, collect_stats=True)
+                          iterations=1, collect_stats=True)
 
     # result
     solution = result.best_state
@@ -299,7 +299,4 @@ if __name__ == '__main__':
     print('Initial objective is {}.'.format(initial_objective))    
     print('Best heuristic objective is {}.'.format(objective))
     draw_animated_output(solution)
-
-    # for drone in solution.drones:
-    #     print(drone)
         

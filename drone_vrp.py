@@ -474,7 +474,7 @@ class Drone(Vehicle):
             self.travel_straight(point)
         else:
             self.travel_straight(point)
-            self.travel_diag(point)  
+            self.travel_diag(point)
             
     def wait(self,point):
         '''Wait at indicated point till truck reaches point
@@ -486,6 +486,7 @@ class Drone(Vehicle):
         while current_t < point[2]:
             current_t += 1
             self.visited_points.append((current_x, current_y, current_t))
+
             
     def replenish_inve(self):
         '''Top up inventory. Function only to be use when at warehouse or truck
@@ -561,7 +562,7 @@ class Drone(Vehicle):
                 if point[2] <= self.travel_turn or point[2] > self.travel_turn+self.battery_level:
                     continue
                 checker = CheckerDrone(copy.deepcopy(self)) 
-                checker.travel_to_truck(Point(point[0], point[1]), truck)
+                checker.travel_to_truck(Point(point[0], point[1]), truck, point[2])
                 
                 if checker.drone.visited_points[-1][2] <= point[2] and checker.drone.battery_level >= 0:
                     if checker.drone.travel_turn < min_turn:
@@ -574,7 +575,7 @@ class Drone(Vehicle):
         if target_truck == None:
             checker.drone.battery_level = -1
         else:
-            checker.travel_to_truck(target_point, target_truck)
+            checker.travel_to_truck(target_point, target_truck, target_waitime[2])
             checker.drone.wait(target_waitime)
             target_truck.charge_to(checker.drone, checker.drone.battery_capacity)
             target_truck.replenish_drone(checker.drone, checker.drone.item_capacity)
@@ -609,11 +610,11 @@ class CheckerDrone(object):
         self.drone.travel_to(wh, diagonal_first=True)
         self.target_wh = wh
 
-    def travel_to_truck(self, point, truck):
+    def travel_to_truck(self, point, truck, truck_t):
         self.drone.travel_to(point, diagonal_first=True)
-        x, y, t = self.drone.visited_points[-1]
+        x, y, _ = self.drone.visited_points[-1]
         self.target_truck = truck
-        self.target_truck_location = (x, y, t)
+        self.target_truck_location = (x, y, truck_t)
 
     def check_cust(self, customer):
         checker = self.drone.check_cust(customer)
@@ -637,8 +638,7 @@ class CheckerDrone(object):
             child.target_wh = self.target_wh
         if child.target_truck == None:
             child.target_truck = self.target_truck
-        if child.target_truck_location[0] == None:
-            child.target_truck_location = self.target_truck_location  
+        child.target_truck_location = self.target_truck_location  
         
 
     
