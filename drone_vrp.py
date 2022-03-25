@@ -781,6 +781,7 @@ class DVRP(object):
         '''
         if seed is not None:
             random.seed(606)
+        random.shuffle(self.customers)
         self.split_route()
         return self.objective()
         

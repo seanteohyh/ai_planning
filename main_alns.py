@@ -284,14 +284,14 @@ if __name__ == '__main__':
     
     # run ALNS
     # select cirterion
-    criterion = HillClimbing()
-    #criterion = SimulatedAnnealing(100000, 1000, 100)
+    # criterion = HillClimbing()
+    criterion = SimulatedAnnealing(10000, 100, 100)
 
     # assigning weights to methods
-    omegas = [5.0, 3.0, 0.1, 0]
+    omegas = [5.0, 3.0, 1.0, 0]
     lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=50, collect_stats=True)
+                          iterations=5, collect_stats=True)
 
     # result
     solution = result.best_state
