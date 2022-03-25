@@ -737,7 +737,7 @@ class DVRP(object):
                 continue
             
             # truck checks    
-            best_truck_time = 1e3
+            best_truck_time = 1e7
             for truck in self.trucks:
                 
                 time = truck.time_to_point(cust)
