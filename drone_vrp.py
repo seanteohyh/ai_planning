@@ -514,7 +514,8 @@ class Drone(Vehicle):
         checker.travel_to_cust(customer)
         if checker.drone.items < customer.demand:
             checker.drone.battery_level = -1
-            # checker.drone.items = 2 #set this so server_cust for checker wont assert
+        else:
+            checker.drone.items -= customer.demand
         return checker
 
     def check_wh(self, warehouses):
