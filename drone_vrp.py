@@ -756,7 +756,7 @@ class DVRP(object):
             c.turn_served = 1e3
         for d in self.drones:
             d.visited_points = [(d.start_node.x, d.start_node.y, 0)]
-            d.batteryy_level = d.battery_capacity
+            d.battery_level = d.battery_capacity
             d.items = d.item_capacity
             d.on_truck = False
         for t in self.trucks:
