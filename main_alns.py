@@ -260,7 +260,7 @@ if __name__ == '__main__':
     omegas = [5.0, 3.0, 0.1, 0]
     lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=100, collect_stats=True)
+                          iterations=20, collect_stats=True)
 
     # result
     solution = result.best_state

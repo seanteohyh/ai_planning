@@ -4,6 +4,7 @@ from calendar import c
 import configparser
 import json
 import copy
+from math import inf
 from scipy.spatial.distance import cdist, pdist
 import numpy as np
 import random
@@ -191,10 +192,10 @@ class Vehicle(object):
             customer::Customer object
         '''
         current_x, current_y, current_t = self.visited_points[-1]
-        # assert(self.items >= customer.demand)
+        assert(self.items >= customer.demand)
         assert(current_x == customer.x)
         assert(current_y == customer.y)
-        # self.items -= customer.demand
+        self.items -= customer.demand
         customer.turn_served = current_t  
         
         
@@ -212,6 +213,7 @@ class Truck(Vehicle):
         '''
         super(Truck, self).__init__(id, start_node, speed_factor)
         self.half_turn = True
+        self.items = 1e9
 
     def find_point_at_t(self, t):
         '''Returns the (x,y) coordinate at time t
@@ -512,7 +514,7 @@ class Drone(Vehicle):
         checker.travel_to_cust(customer)
         if checker.drone.items < customer.demand:
             checker.drone.battery_level = -1
-            checker.drone.items = 2 #set this so server_cust for checker wont assert
+            # checker.drone.items = 2 #set this so server_cust for checker wont assert
         return checker
 
     def check_wh(self, warehouses):
