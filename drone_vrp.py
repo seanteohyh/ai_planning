@@ -671,6 +671,7 @@ class DVRP(object):
         # self.drone_init = copy.deepcopy(drones)
         # record the unvisited customers, eg. [Customer9, Customer10]
         self.destroyed_nodes = []
+        self.destroyed_idx = []
 
 
 

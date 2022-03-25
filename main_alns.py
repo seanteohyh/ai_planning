@@ -117,10 +117,16 @@ def randomDestroy(current, random_state):
     # You should code here
     destroyed = copy.deepcopy(current)
     if round(len(destroyed.customers)) < 5:
-        destroyed.destroyed_nodes.append(destroyed.customers.pop(random_state.randint(0,len(destroyed.customers))))
+        idx = random_state.randint(0,len(destroyed.customers))
+
+        destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
+        destroyed.destroyed_idx.append(idx)
     else:
         for _ in range(round(len(destroyed.customers)*0.2)):
-            destroyed.destroyed_nodes.append(destroyed.customers.pop(random_state.randint(0,len(destroyed.customers))))
+            idx = random_state.randint(0,len(destroyed.customers))
+
+            destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
+            destroyed.destroyed_idx.append(idx)
     return destroyed
 
 def greedyDestroy(current, random_state):
@@ -147,6 +153,7 @@ def greedyDestroy(current, random_state):
         if distance > max_dist:
             max_dist = distance
             target = i
+    destroyed.destroyed_idx.append(target)
     destroyed.destroyed_nodes.append(destroyed.customers.pop(target))
     return destroyed    
 
@@ -226,6 +233,29 @@ def greedyRepair(destroyed, random_state):
     repaired.split_route()
     return repaired
 
+def nearidxRepair(destroyed, random_state):
+    '''  inserts to index -1 position, if index = 0 insert at back
+    Args:
+        destroyed::DVRP
+            an DVRP object after destroying
+        random_state::numpy.random.RandomState
+            a random state specified by the random seed
+    Returns:
+        repaired::DVRP
+            the evrp object after repairing
+    '''
+    repaired = copy.deepcopy(destroyed)
+    for c in range(len(repaired.destroyed_nodes)-1,-1,-1):
+        if repaired.destroyed_idx[c] == 0:
+            repaired.customers.insert(len(repaired.customers), repaired.destroyed_nodes.pop(c))
+            repaired.destroyed_idx.pop(c)
+        else:
+            repaired.customers.insert(repaired.destroyed_idx.pop(c)-1, repaired.destroyed_nodes.pop(c))
+
+    repaired.split_route()
+    return repaired
+                
+
 
 if __name__ == '__main__':
     # instance file and random seed
@@ -250,17 +280,18 @@ if __name__ == '__main__':
     # add repair
     alns.add_repair_operator(randomRepair)
     alns.add_repair_operator(greedyRepair)
+    alns.add_repair_operator(nearidxRepair)
     
     # run ALNS
     # select cirterion
-    # criterion = HillClimbing()
-    criterion = SimulatedAnnealing(100000, 1000, 100)
+    criterion = HillClimbing()
+    #criterion = SimulatedAnnealing(100000, 1000, 100)
 
     # assigning weights to methods
     omegas = [5.0, 3.0, 0.1, 0]
     lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=20, collect_stats=True)
+                          iterations=50, collect_stats=True)
 
     # result
     solution = result.best_state
