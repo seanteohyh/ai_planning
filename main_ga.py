@@ -129,24 +129,28 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     return nextGeneration
 
 #Final step: create the genetic algorithm
-def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, otherParamters):
+def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp):
     print(population)
     pop = initialPopulation(popSize, population)
-    print("Initial Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+    print("Initial Service Time: " + str(1 / rankRoutes(pop, dvrp)[0][1]))
     progress = []
-    progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
+    progress.append(1 / rankRoutes(pop, dvrp)[0][1])
     for i in range(0, generations):
-        pop = nextGeneration(pop, eliteSize, mutationRate, otherParamters)
-        progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
+        pop = nextGeneration(pop, eliteSize, mutationRate, dvrp)
+        progress.append(1 / rankRoutes(pop, dvrp)[0][1])
     
-    print("Final Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+    print("Final Service Time: " + str(1 / rankRoutes(pop, dvrp)[0][1]))
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
-    bestRouteIndex = rankRoutes(pop, otherParamters)[0][0]
+    bestRouteIndex = rankRoutes(pop, dvrp)[0][0]
     bestRoute = pop[bestRouteIndex]
-    return bestRoute
+    dvrp1 = copy.deepcopy(dvrp)
+    dvrp1.customers = bestRoute
+    dvrp1.split_route();
+    
+    return dvrp1
 
 
 
@@ -164,13 +168,11 @@ if __name__ == '__main__':
     start = time.time()
 
     
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,otherParamters=dvrp)
+    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,dvrp=dvrp)
     
     end = time.time()
     print('running time: ',end - start)
-    print ('bestRoute: ')
-    for custom in bestRoute:
-        print(custom.id)
+    
 
 
     
