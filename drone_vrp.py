@@ -148,7 +148,7 @@ class Customer(Node):
         '''
         super(Customer, self).__init__(id, type, x, y)
         self.demand = demand
-        self.turn_served = 0
+        self.turn_served = 1e3
         
     def __str__(self):
         return 'Node id: {}, type: {}, x: {}, y: {}, demand: {}, turn_served: {}'.format(self.id, self.type, self.x, self.y, self.demand, self.turn_served)
@@ -211,7 +211,6 @@ class Truck(Vehicle):
                 speed factor of the truck
         '''
         super(Truck, self).__init__(id, start_node, speed_factor)
-        self.wait = False
         self.half_turn = True
 
     def find_point_at_t(self, t):
@@ -550,7 +549,7 @@ class Drone(Vehicle):
         Returns:
             CheckerDrone object
         '''
-        min_turn = 1e3
+        min_turn = 1e7
         target_truck = None
         target_point = None
 
@@ -665,10 +664,130 @@ class DVRP(object):
         self.map_size = map_size
         
         # record the all the customers who have been visited by all the vehicles, eg. [Customer1, Customer2, ..., Customer7, Customer8]
-        self.truck_init = copy.deepcopy(trucks)
-        self.drone_init = copy.deepcopy(drones)
+        # self.truck_init = copy.deepcopy(trucks)
+        # self.drone_init = copy.deepcopy(drones)
         # record the unvisited customers, eg. [Customer9, Customer10]
         self.destroyed_nodes = []
+
+
+
+
+    def split_route(self):
+        ''' Future Initialization for construction heuristic'''
+        self.restart()
+        for c in range(len(self.customers)):
+            cust = self.customers[c]
+
+
+            # drone checks
+            best_drone_time = 1e3
+            best_mtd = 0
+            
+            for d in range(len(self.drones)):
+                drone = self.drones[d]
+                if cust.demand > drone.item_capacity:
+                    break
+
+                drone_time = 1e3
+                # 1. drone cust-truck check
+                if drone.check_cust(cust).check_truck(self.trucks).evaluate():
+                    test_drone = drone.check_cust(cust)
+                    drone_time = test_drone.drone.visited_points[-1][2]
+                    mtd = 1
+                    # print('mtd 1 drone',drone.id,' time', drone_time)
+                    
+                # 2. drone- warehouse - cust- truck check  
+                elif drone.check_wh(self.warehouses).check_cust(cust).check_truck(self.trucks).evaluate():
+                    test_drone = drone.check_wh(self.warehouses).check_cust(cust)
+                    drone_time = test_drone.drone.visited_points[-1][2]
+                    mtd = 2
+                    # print('mtd 2 drone', drone.id,' time', drone_time)
+
+                # 3. drone - truck - cust- truck check
+                elif drone.check_truck(self.trucks).check_cust(cust).check_truck(self.trucks).evaluate():
+                    test_drone = drone.check_truck(self.trucks).check_cust(cust)
+                    trgt_truck = test_drone.target_truck
+                    drone_time = test_drone.drone.visited_points[-1][2]
+                    mtd = 3
+                    # print('mtd 3 drone', drone.id, 'time', drone_time)
+                
+                if drone_time < best_drone_time:
+                    best_drone_time = drone_time
+                    best_check = test_drone
+                    best_drone = drone
+                    best_mtd=  mtd
+                    
+            mtd_cnt = 0
+            if best_drone_time < 1e3:
+                if best_mtd == 1:
+                    best_drone.travel_to(best_check.target_cust)
+                    best_drone.serve_customer(best_check.target_cust)
+                if best_mtd == 2:
+                    best_drone.travel_to(best_check.target_wh)
+                    best_drone.replenish_inve()
+                    best_drone.travel_to(best_check.target_cust)
+                    best_drone.serve_customer(best_check.target_cust)
+                if best_mtd == 3:
+                    best_drone.travel_to(Point(best_check.target_truck_location[0],best_check.target_truck_location[1]))
+                    best_drone.wait(best_check.target_truck_location)
+                    best_check.target_truck.charge_to(best_drone, best_drone.battery_capacity)
+                    best_drone.replenish_inve()
+                    best_drone.travel_to(best_check.target_cust)
+                    best_drone.serve_customer(best_check.target_cust)                   
+                continue
+            
+            # truck checks    
+            best_truck_time = 1e3
+            for truck in self.trucks:
+                
+                time = truck.time_to_point(cust)
+                if time < best_truck_time:
+                    best_truck_time = time
+                    best_truck = truck
+            
+                    
+            direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
+            best_truck.travel_to(cust,direction)
+            best_truck.serve_customer(cust)
+            # print('cust',cust.id, 'served by truck', best_truck.id)
+
+    def restart(self):
+        for c in self.customers:
+            c.turn_served = 1e3
+        for d in self.drones:
+            d.visited_points = [(d.start_node.x, d.start_node.y, 0)]
+            d.batteryy_level = d.battery_capacity
+            d.items = d.item_capacity
+            d.on_truck = False
+        for t in self.trucks:
+            t.visited_points = [(t.start_node.x, t.start_node.y, 0)]
+            t.half_turn = False
+        self.destroyed_nodes = []
+
+                  
+            
+    def random_initialize(self, seed=None):
+        ''' Randomly initialize the state with split_route() (your construction heuristic)
+        Args:
+            seed::int
+                random seed
+        Returns:
+            objective::float
+                objective value of the state
+        '''
+        if seed is not None:
+            random.seed(606)
+        self.split_route()
+        return self.objective()
+        
+
+        
+    def objective(self):
+        ''' Calculate the objective value of the state
+        Return turns needed to fulfil customer orders and for vehicles to travel back to warehouse
+        '''
+        return sum([c.turn_served for c in self.customers])
+
 
     # def charge_required(source, dest):
     #     '''Check charge or time required to travel from one point to another
@@ -741,71 +860,6 @@ class DVRP(object):
     #                 possible_pts.append(loc)
     #     return possible_pts 
 
-
-
-    def split_route(self):
-        ''' Future Initialization for construction heuristic'''
-        self.destroyed_nodes= []
-
-        for c in range(len(self.customers)):
-            cust = self.customers[c]
-
-
-            # drone checks
-            best_drone_time = 1e3
-            best_mtd = 0
-            
-            for d in range(len(self.drones)):
-                drone = self.drones[d]
-                if cust.demand > drone.item_capacity:
-                    break
-
-                drone_time = 1e3
-                # 1. drone cust-truck check
-                if drone.check_cust(cust).check_truck(self.trucks).evaluate():
-                    test_drone = drone.check_cust(cust)
-                    drone_time = test_drone.drone.visited_points[-1][2]
-                    mtd = 1
-                    # print('mtd 1 drone',drone.id,' time', drone_time)
-                    
-                # 2. drone- warehouse - cust- truck check  
-                elif drone.check_wh(self.warehouses).check_cust(cust).check_truck(self.trucks).evaluate():
-                    test_drone = drone.check_wh(self.warehouses).check_cust(cust)
-                    drone_time = test_drone.drone.visited_points[-1][2]
-                    mtd = 2
-                    # print('mtd 2 drone', drone.id,' time', drone_time)
-
-                # 3. drone - truck - cust- truck check
-                elif drone.check_truck(self.trucks).check_cust(cust).check_truck(self.trucks).evaluate():
-                    test_drone = drone.check_truck(self.trucks).check_cust(cust)
-                    trgt_truck = test_drone.target_truck
-                    drone_time = test_drone.drone.visited_points[-1][2]
-                    mtd = 3
-                    # print('mtd 3 drone', drone.id, 'time', drone_time)
-                
-                if drone_time < best_drone_time:
-                    best_drone_time = drone_time
-                    best_check = test_drone
-                    best_drone = drone
-                    best_mtd=  mtd
-                    
-            mtd_cnt = 0
-            if best_drone_time < 1e3:
-                if best_mtd == 1:
-                    best_drone.travel_to(best_check.target_cust)
-                    best_drone.serve_customer(best_check.target_cust)
-                if best_mtd == 2:
-                    best_drone.travel_to(best_check.target_wh)
-                    best_drone.replenish_inve()
-                    best_drone.travel_to(best_check.target_cust)
-                    best_drone.serve_customer(best_check.target_cust)
-                if best_mtd == 3:
-                    best_drone.travel_to(Point(best_check.target_truck_location[0],best_check.target_truck_location[1]))
-                    best_drone.wait(best_check.target_truck_location)
-                    best_check.target_truck.charge_to(best_drone, best_drone.battery_capacity)
-                    best_drone.replenish_inve()
-                    best_drone.travel_to(best_check.target_cust)
-                    best_drone.serve_customer(best_check.target_cust)                   
                 # for point in best_check.drone.visited_points:
                 #     if point[2]> best_drone.travel_turn:
                 #         best_drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
@@ -825,42 +879,8 @@ class DVRP(object):
                 # print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
 
                 # best_drone.serve_customer(cust)
-                
-                continue
-            
-            # truck checks    
-            best_truck_time = 1e3
-            for truck in self.trucks:
-                
-                time = truck.time_to_point(cust)
-                if time < best_truck_time:
-                    best_truck_time = time
-                    best_truck = truck
-            
-                    
-            direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
-            best_truck.travel_to(cust,direction)
-            best_truck.serve_customer(cust)
-            # print('cust',cust.id, 'served by truck', best_truck.id)
-                  
-            
-    def random_initialize(self, seed=None):
-        ''' Randomly initialize the state with split_route() (your construction heuristic)
-        Args:
-            seed::int
-                random seed
-        Returns:
-            objective::float
-                objective value of the state
-        '''
-        if seed is not None:
-            random.seed(606)
-        # random_tour = copy.deepcopy(self.customers)
-        # random.shuffle(random_tour)
-        self.split_route()
-        return self.objective()
-        
-    # def initialize(self):
+
+        # def initialize(self):
     #     ''' Initialize the state with construction heuristic
     #     Evenly distribute customers to each truck if sufficient capacity, restock otherwise
     #     Truck returns to starting warehouse after all customers served
@@ -881,12 +901,4 @@ class DVRP(object):
     #     for t in self.trucks:
     #         t.travel_to(Point(t.start_node.x, t.start_node.y), False)
     #     return self.objective()
-        
-    def objective(self):
-        ''' Calculate the objective value of the state
-        Return turns needed to fulfil customer orders and for vehicles to travel back to warehouse
-        '''
-
-        return sum([c.turn_served for c in self.customers])
-        #return max([len(t.visited_points) for t in self.trucks] + [len(d.visited_points) for d in self.drones])
 
