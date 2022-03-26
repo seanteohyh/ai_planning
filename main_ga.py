@@ -132,19 +132,22 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
 def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp):
     print(population)
     pop = initialPopulation(popSize, population)
-    print("Initial Service Time: " + str(1 / rankRoutes(pop, dvrp)[0][1]))
+    popRanked = rankRoutes(pop, dvrp);
+    print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
-    progress.append(1 / rankRoutes(pop, dvrp)[0][1])
+    progress.append(1 / popRanked[0][1])
     for i in range(0, generations):
-        pop = nextGeneration(pop, eliteSize, mutationRate, dvrp)
-        progress.append(1 / rankRoutes(pop, dvrp)[0][1])
+        print('start generations:', i+1)
+        pop,popRanked = nextGeneration(pop, eliteSize, mutationRate, dvrp)
+        
+        progress.append(1 / popRanked[0][1])
     
-    print("Final Service Time: " + str(1 / rankRoutes(pop, dvrp)[0][1]))
+    print("Final Service Time: " + str(1 / popRanked[0][1]))
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
-    bestRouteIndex = rankRoutes(pop, dvrp)[0][0]
+    bestRouteIndex = popRanked[0][0]
     bestRoute = pop[bestRouteIndex]
     dvrp1 = copy.deepcopy(dvrp)
     dvrp1.customers = bestRoute
