@@ -7,9 +7,9 @@ import time
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
-        print('population id:')
-        for custom in population[i]:
-            print(custom.id)
+        #print('population id:')
+        #for custom in population[i]:
+        #    print(custom.id)
         dvrp1 = copy.deepcopy(dvrp)
         dvrp1.customers = population[i]
         dvrp1.split_route();
@@ -126,7 +126,7 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     matingpool = matingPool(currentGen, selectionResults)
     children = breedPopulation(matingpool, eliteSize)
     nextGeneration = mutatePopulation(children, mutationRate)
-    return nextGeneration
+    return nextGeneration,popRanked
 
 #Final step: create the genetic algorithm
 def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp):
@@ -160,7 +160,7 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-complex"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
