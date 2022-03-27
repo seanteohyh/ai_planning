@@ -3,6 +3,13 @@ from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 import time
 
+def PrintCustomers(customers):
+    s = "("
+    for custom in customers:
+        s+=str(custom.id) + ', '
+    s= s[0:-2]+")"
+    return s;
+
 
 def rankRoutes(population, dvrp):
     fitnessResults = {}
@@ -95,6 +102,8 @@ def breedPopulation(matingpool, eliteSize):
     for i in range(0, length):
         child = breed(pool[i], pool[len(matingpool)-i-1])
         children.append(child)
+    for i in range(0,len(children)):
+        print("child",i,PrintCustomers(children[i]))
     return children
 
 #Create function to mutate a single route
@@ -117,6 +126,8 @@ def mutatePopulation(population, mutationRate):
     for ind in range(0, len(population)):
         mutatedInd = mutate(population[ind], mutationRate)
         mutatedPop.append(mutatedInd)
+    for i in range(0,len(mutatedPop)):
+        print("mutate child",i,PrintCustomers(mutatedPop[i]))
     return mutatedPop
 
 #Put all steps together to create the next generation
@@ -132,6 +143,8 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
 def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp):
     print(population)
     pop = initialPopulation(popSize, population)
+    for i in range(0,len(pop)):
+        print("Initial pop",i,PrintCustomers(pop[i]))
     popRanked = rankRoutes(pop, dvrp);
     print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
@@ -171,7 +184,7 @@ if __name__ == '__main__':
     start = time.time()
 
     
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,dvrp=dvrp)
+    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=2, mutationRate=0.01, generations=10,dvrp=dvrp)
     
     end = time.time()
     print('running time: ',end - start)
