@@ -3,13 +3,20 @@ from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 import time
 
+def PrintCustomers(customers):
+    s = "("
+    for custom in customers:
+        s+=str(custom.id) + ', '
+    s= s[0:-2]+")"
+    return s;
+
 
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
-        # print('population id:')
-        # for custom in population[i]:
-        #     print(custom.id)
+        #print('population id:')
+        #for custom in population[i]:
+        #    print(custom.id)
         dvrp1 = copy.deepcopy(dvrp)
         dvrp1.customers = population[i]
         dvrp1.split_route()
@@ -95,6 +102,8 @@ def breedPopulation(matingpool, eliteSize):
     for i in range(0, length):
         child = breed(pool[i], pool[len(matingpool)-i-1])
         children.append(child)
+    for i in range(0,len(children)):
+        print("child",i,PrintCustomers(children[i]))
     return children
 
 #Create function to mutate a single route
@@ -117,6 +126,8 @@ def mutatePopulation(population, mutationRate):
     for ind in range(0, len(population)):
         mutatedInd = mutate(population[ind], mutationRate)
         mutatedPop.append(mutatedInd)
+    for i in range(0,len(mutatedPop)):
+        print("mutate child",i,PrintCustomers(mutatedPop[i]))
     return mutatedPop
 
 #Put all steps together to create the next generation
@@ -126,35 +137,43 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     matingpool = matingPool(currentGen, selectionResults)
     children = breedPopulation(matingpool, eliteSize)
     nextGeneration = mutatePopulation(children, mutationRate)
-    return nextGeneration
+    return nextGeneration,popRanked
 
 #Final step: create the genetic algorithm
 def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, otherParamters):
     # print(population)
     pop = initialPopulation(popSize, population)
-    print("Initial Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+    for i in range(0,len(pop)):
+        print("Initial pop",i,PrintCustomers(pop[i]))
+    popRanked = rankRoutes(pop, dvrp);
+    print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
-    progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
+    progress.append(1 / popRanked[0][1])
     for i in range(0, generations):
-        print("Generation:", i)
-        pop = nextGeneration(pop, eliteSize, mutationRate, otherParamters)
-        progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
+        print('start generations:', i+1)
+        pop,popRanked = nextGeneration(pop, eliteSize, mutationRate, dvrp)
+        
+        progress.append(1 / popRanked[0][1])
     
-    print("Final Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+    print("Final Service Time: " + str(1 / popRanked[0][1]))
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
-    bestRouteIndex = rankRoutes(pop, otherParamters)[0][0]
+    bestRouteIndex = popRanked[0][0]
     bestRoute = pop[bestRouteIndex]
-    return bestRoute
+    dvrp1 = copy.deepcopy(dvrp)
+    dvrp1.customers = bestRoute
+    dvrp1.split_route()
+    
+    return dvrp1
 
 
 
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-complex"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -167,15 +186,11 @@ if __name__ == '__main__':
     
     bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=4, mutationRate=0.01, generations=2,otherParamters=dvrp)
 
-    dvrp.customers = bestRoute
-    dvrp.split_route()
-    draw_animated_output(dvrp)
+    draw_animated_output(bestRoute)
     
     end = time.time()
     print('running time: ',end - start)
-    print ('bestRoute: ')
-    for custom in bestRoute:
-        print(custom.id)
+    
 
 
     
