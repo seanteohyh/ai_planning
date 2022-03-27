@@ -15,13 +15,14 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
+import time
 
 
 def draw_animated_output(dvrp):
     width = dvrp.map_size[0]
     height = dvrp.map_size[1]
     fig = plt.figure() 
-    ax = plt.axes(xlim=(-5, width+5), ylim=(-5, height+5))
+    ax = plt.axes(xlim=(-1, width+1), ylim=(-1, height+1))
     max_frames = max([c.turn_served for c in dvrp.customers])+2
     
     # scatter plot for warehouses
@@ -97,7 +98,7 @@ def draw_animated_output(dvrp):
         return lines
 
     anim = animation.FuncAnimation(fig, animate_drones, init_func=init, 
-							frames=max_frames, interval=50, blit=True)
+							frames=max_frames, interval=250, blit=True)
     
     # %matplotlib gt
     plt.show() 
@@ -258,9 +259,12 @@ def nearidxRepair(destroyed, random_state):
 
 
 if __name__ == '__main__':
+
+    start_time = time.time()
+
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-complex"
+    data_type = "DEFAULT"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -280,23 +284,23 @@ if __name__ == '__main__':
     # add repair
     alns.add_repair_operator(randomRepair)
     alns.add_repair_operator(greedyRepair)
-    # alns.add_repair_operator(nearidxRepair)
+    alns.add_repair_operator(nearidxRepair)
     
     # run ALNS
     # select cirterion
-    # criterion = HillClimbing()
-    criterion = SimulatedAnnealing(10000, 100, 100)
+    criterion = HillClimbing()
+    # criterion = SimulatedAnnealing(10000, 100, 100)
 
     # assigning weights to methods
-    omegas = [5.0, 3.0, 0.5, 0]
+    omegas = [5.0, 3.0, 0.01, 0]
     lambda_ = 0.6
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=1, collect_stats=True)
+                          iterations=10, collect_stats=True)
 
     # result
     solution = result.best_state
     objective = solution.objective()
     print('Initial objective is {}.'.format(initial_objective))    
     print('Best heuristic objective is {}.'.format(objective))
+    print("--- %s seconds ---" % (time.time() - start_time))
     draw_animated_output(solution)
-        
