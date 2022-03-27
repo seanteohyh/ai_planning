@@ -7,12 +7,12 @@ import time
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
-        print('population id:')
-        for custom in population[i]:
-            print(custom.id)
+        # print('population id:')
+        # for custom in population[i]:
+        #     print(custom.id)
         dvrp1 = copy.deepcopy(dvrp)
         dvrp1.customers = population[i]
-        dvrp1.split_route();
+        dvrp1.split_route()
         fitnessResults[i] = 1/dvrp1.objective()
     return sorted(fitnessResults.items(), key = operator.itemgetter(1), reverse = True)
 
@@ -130,12 +130,13 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
 
 #Final step: create the genetic algorithm
 def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, otherParamters):
-    print(population)
+    # print(population)
     pop = initialPopulation(popSize, population)
     print("Initial Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
     progress = []
     progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
     for i in range(0, generations):
+        print("Generation:", i)
         pop = nextGeneration(pop, eliteSize, mutationRate, otherParamters)
         progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
     
@@ -164,7 +165,11 @@ if __name__ == '__main__':
     start = time.time()
 
     
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,otherParamters=dvrp)
+    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=4, mutationRate=0.01, generations=2,otherParamters=dvrp)
+
+    dvrp.customers = bestRoute
+    dvrp.split_route()
+    draw_animated_output(dvrp)
     
     end = time.time()
     print('running time: ',end - start)
