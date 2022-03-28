@@ -3,7 +3,7 @@ from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 import time
 
-
+random.seed(606)
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):

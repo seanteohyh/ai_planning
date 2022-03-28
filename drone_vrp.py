@@ -763,9 +763,11 @@ class DVRP(object):
             d.battery_level = d.battery_capacity
             d.items = d.item_capacity
             d.on_truck = False
+            d.travel_turn =0
         for t in self.trucks:
             t.visited_points = [(t.start_node.x, t.start_node.y, 0)]
             t.half_turn = False
+            t.travel_turn = 0
         self.destroyed_nodes = []
 
                   
