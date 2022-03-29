@@ -19,7 +19,7 @@ def rankRoutes(population, dvrp):
         #    print(custom.id)
         dvrp1 = copy.deepcopy(dvrp)
         dvrp1.customers = population[i]
-        dvrp1.split_route()
+        dvrp1.split_route();
         fitnessResults[i] = 1/dvrp1.objective()
     return sorted(fitnessResults.items(), key = operator.itemgetter(1), reverse = True)
 
@@ -28,7 +28,6 @@ Description: Main method of GA
 Reference: 
 https://levelup.gitconnected.com/how-to-implement-a-traveling-salesman-problem-genetic-algorithm-in-python-ea32c7bef20f
 https://github.com/rocreguant/personal_blog/blob/main/Genetic_Algorithm_Python_Example/Traveling_Salesman_Problem.ipynb
-
 '''
 
 ## Create our initial population
@@ -102,8 +101,8 @@ def breedPopulation(matingpool, eliteSize):
     for i in range(0, length):
         child = breed(pool[i], pool[len(matingpool)-i-1])
         children.append(child)
-    for i in range(0,len(children)):
-        print("child",i,PrintCustomers(children[i]))
+    # for i in range(0,len(children)):
+    #     print("child",i,PrintCustomers(children[i]))
     return children
 
 #Create function to mutate a single route
@@ -126,8 +125,8 @@ def mutatePopulation(population, mutationRate):
     for ind in range(0, len(population)):
         mutatedInd = mutate(population[ind], mutationRate)
         mutatedPop.append(mutatedInd)
-    for i in range(0,len(mutatedPop)):
-        print("mutate child",i,PrintCustomers(mutatedPop[i]))
+    # for i in range(0,len(mutatedPop)):
+    #     print("mutate child",i,PrintCustomers(mutatedPop[i]))
     return mutatedPop
 
 #Put all steps together to create the next generation
@@ -140,20 +139,28 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     return nextGeneration,popRanked
 
 #Final step: create the genetic algorithm
-def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, otherParamters):
+def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp, start_time):
     # print(population)
     pop = initialPopulation(popSize, population)
-    for i in range(0,len(pop)):
-        print("Initial pop",i,PrintCustomers(pop[i]))
+    # for i in range(0,len(pop)):
+    #     print("Initial pop",i,PrintCustomers(pop[i]))
     popRanked = rankRoutes(pop, dvrp);
+
     print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
     progress.append(1 / popRanked[0][1])
+    result_table.iloc[0,0] = "Initial"
+    result_table.iloc[0,1] = 1/popRanked[0][1] 
+    result_table.iloc[0,2] = time.time() - start_time
+    result_table.iloc[0,3] = ",".join(["{}".format(c.id)for c in pop[popRanked[0][0]]])  
     for i in range(0, generations):
         print('start generations:', i+1)
         pop,popRanked = nextGeneration(pop, eliteSize, mutationRate, dvrp)
-        
         progress.append(1 / popRanked[0][1])
+        result_table.iloc[i+1,0] = i+1
+        result_table.iloc[i+1,1] = 1/popRanked[0][1] 
+        result_table.iloc[i+1,2] = time.time() - start_time
+        result_table.iloc[i+1,3] = ",".join(["{}".format(c.id) for c in pop[popRanked[0][0]]])   
     
     print("Final Service Time: " + str(1 / popRanked[0][1]))
     plt.plot(progress)
@@ -164,7 +171,7 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
     bestRoute = pop[bestRouteIndex]
     dvrp1 = copy.deepcopy(dvrp)
     dvrp1.customers = bestRoute
-    dvrp1.split_route()
+    dvrp1.split_route();
     
     return dvrp1
 
@@ -173,7 +180,7 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-medium"
+    data_type = "data-complex"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -183,17 +190,21 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=4, mutationRate=0.01, generations=2,otherParamters=dvrp)
+    random.seed(606)
 
-    draw_animated_output(bestRoute)
+    generations = 50
+    result_table = pd.DataFrame(
+        {
+            "generation":np.zeros(generations+1),
+            "results":np.zeros(generations+1),
+            "time":np.zeros(generations+1),
+            "customers":np.zeros(generations+1)
+        }
+    )
+    print(result_table)
+    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=4, mutationRate=0.05, generations=generations, dvrp=dvrp, start_time=start)
+    result_table.to_csv("./GA_results.csv", index=False)
     
     end = time.time()
     print('running time: ',end - start)
     
-
-
-    
-
-
-
