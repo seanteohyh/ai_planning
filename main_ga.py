@@ -18,7 +18,7 @@ def rankRoutes(population, dvrp):
         #for custom in population[i]:
         #    print(custom.id)
         dvrp1 = copy.deepcopy(dvrp)
-        dvrp1.customers = population[i]
+        dvrp1.customers = copy.deepcopy(population[i])
         dvrp1.split_route();
         fitnessResults[i] = 1/dvrp1.objective()
     return sorted(fitnessResults.items(), key = operator.itemgetter(1), reverse = True)
@@ -139,41 +139,48 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     return nextGeneration,popRanked
 
 #Final step: create the genetic algorithm
-def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp, start_time):
-    # print(population)
+def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp, start_time, ind):
+    start_time = time.time()
     pop = initialPopulation(popSize, population)
-    # for i in range(0,len(pop)):
-    #     print("Initial pop",i,PrintCustomers(pop[i]))
     popRanked = rankRoutes(pop, dvrp);
 
     print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
     progress.append(1 / popRanked[0][1])
-    result_table.iloc[0,0] = "Initial"
-    result_table.iloc[0,1] = 1/popRanked[0][1] 
-    result_table.iloc[0,2] = time.time() - start_time
-    result_table.iloc[0,3] = ",".join(["{}".format(c.id)for c in pop[popRanked[0][0]]])  
+    # result_table.iloc[0,0] = "Initial"
+    # result_table.iloc[0,1] = 1/popRanked[0][1] 
+    # result_table.iloc[0,2] = time.time() - start_time
+    # result_table.iloc[0,3] = ",".join(["{}".format(c.id)for c in pop[popRanked[0][0]]])  
+    
+    best_result = 1e7
+    gen_taken = 0
     for i in range(0, generations):
         print('start generations:', i+1)
         pop,popRanked = nextGeneration(pop, eliteSize, mutationRate, dvrp)
         progress.append(1 / popRanked[0][1])
-        result_table.iloc[i+1,0] = i+1
-        result_table.iloc[i+1,1] = 1/popRanked[0][1] 
-        result_table.iloc[i+1,2] = time.time() - start_time
-        result_table.iloc[i+1,3] = ",".join(["{}".format(c.id) for c in pop[popRanked[0][0]]])   
+        if 1/popRanked[0][1] < best_result:
+            bestRouteIndex = popRanked[0][0]
+            bestRoute = copy.deepcopy(pop[bestRouteIndex])
+            best_result = 1/popRanked[0][1]
+            gen_taken = i
+
     
     print("Final Service Time: " + str(1 / popRanked[0][1]))
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
-    bestRouteIndex = popRanked[0][0]
-    bestRoute = pop[bestRouteIndex]
-    dvrp1 = copy.deepcopy(dvrp)
-    dvrp1.customers = bestRoute
-    dvrp1.split_route();
-    
-    return dvrp1
+    # dvrp1 = copy.deepcopy(dvrp)
+    # dvrp1.customers = bestRoute
+    # dvrp1.split_route()
+    # result_table.iloc[ind,0] = popSize
+    # result_table.iloc[ind,1] = eliteSize
+    # result_table.iloc[ind,2] = mutationRate
+    # result_table.iloc[ind,3] = generations
+    # result_table.iloc[ind,4] = best_result
+    # result_table.iloc[ind,5] = time.time() - start_time   
+    # result_table.iloc[ind,6] = gen_taken 
+    return progress
 
 
 
@@ -192,18 +199,39 @@ if __name__ == '__main__':
 
     random.seed(606)
 
-    generations = 50
-    result_table = pd.DataFrame(
-        {
-            "generation":np.zeros(generations+1),
-            "results":np.zeros(generations+1),
-            "time":np.zeros(generations+1),
-            "customers":np.zeros(generations+1)
-        }
-    )
-    print(result_table)
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=4, mutationRate=0.05, generations=generations, dvrp=dvrp, start_time=start)
-    result_table.to_csv("./GA_results.csv", index=False)
+    # param_table = pd.DataFrame(
+    #     {
+    #         "popSize":[10,20,40,50],
+    #         "eliteSize":[0.1,0.2,0.3,0.4],
+    #         "mutRate":[0.05,0.10,0.15,0.20],
+    #         "gens":[200,200,200,200],
+    #         "results":[0,0,0,0],
+    #         "time":[0,0,0,0]
+    #     }
+    # )
+    # result_table = pd.DataFrame(
+    #     {
+    #         "popSize":np.zeros(4**3),
+    #         "eliteSize":np.zeros(4**3),
+    #         "mutRate":np.zeros(4**3),
+    #         "gens":np.zeros(4**3),
+    #         "results":np.zeros(4**3),
+    #         "time":np.zeros(4**3),
+    #         "gens_taken":np.zeros(4**3)
+    #     }
+    # )
+
+    # ind = 0
+    # for p in param_table["popSize"]:
+    #     for e in param_table["eliteSize"]:
+    #         for m in param_table["mutRate"]:
+    #             random.seed(606)
+    #             bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=p, eliteSize=int(e*p), mutationRate=m, generations=int(200/p), dvrp=dvrp, start_time=start, ind=ind)
+    #             ind += 1
+    progress = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=2, mutationRate=0.05, generations=50, dvrp=dvrp, start_time=start, ind=0)
+    progress_table = pd.DataFrame({"Progress":progress})
+    progress_table.to_csv("./Progress_GA.csv", index=False)
+    # result_table.to_csv("./GA_tuning.csv", index=False)
     
     end = time.time()
     print('running time: ',end - start)

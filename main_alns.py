@@ -310,7 +310,7 @@ if __name__ == '__main__':
 
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-medium"
+    data_type = "data-complex"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
@@ -337,22 +337,28 @@ if __name__ == '__main__':
     # run ALNS
     # select cirterion
     # criterion = HillClimbing()
-    criterion = SimulatedAnnealing(10000, 1, 100)
+    criterion = SimulatedAnnealing(9, 1, 0.1)
 
     # assigning weights to methods
-    omegas = [5.0, 3.0, 0.05, 0.05]
+    omegas = [5.0, 1.0, 0.5, 0.1]
     lambda_ = 0.8
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=250, collect_stats=True)
-
+                          iterations=200, collect_stats=True)
+    result.plot_objectives()
+    result.plot_operator_counts()
     # result
     solution = result.best_state
     objective = solution.objective()
+    for t in solution.trucks:
+        print(t)
+    for d in solution.drones:
+        print(d)    
     print('Initial objective is {}.'.format(initial_objective))    
     print('Best heuristic objective is {}.'.format(objective))
     print("--- %s seconds ---" % (time.time() - start_time))
-    draw_animated_output(solution)
 
+    draw_animated_output(solution)
+    
 
     # a = [18, 12, 15, 8, 6, 20, 7, 14, 13, 17, 19, 9, 16, 10, 11]
     # ### [12, 3, 16, 14, 8, 1, 1, 2, 3, 2, 3, 6, 1, 6, 4]

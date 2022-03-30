@@ -772,7 +772,6 @@ class DVRP(object):
         self.destroyed_nodes = []
 
     def restart_drone(self):
-        print("restarting drones")
         for c in self.customers:
             if not c.serve_by_truck:
                 c.turn_served = 1e3
@@ -788,7 +787,6 @@ class DVRP(object):
         self.restart()
 
         while any([(c.turn_served==1e3) for c in self.customers]):
-            print([d.visited_points for d in self.drones])
             for c in range(len(self.customers)):
 
                 if self.customers[c].serve_by_truck:
@@ -867,6 +865,8 @@ class DVRP(object):
                 best_truck.serve_customer(cust)
                 cust.serve_by_truck = True
                 self.restart_drone()
+                if c != len(self.customers)-1:
+                    break
                 # print('cust',cust.id, 'served by truck', best_truck.id)                  
             
     def random_initialize(self, seed=None):
