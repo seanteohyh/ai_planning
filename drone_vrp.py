@@ -311,8 +311,6 @@ class Truck(Vehicle):
             amt = 0
         else:
             amt = x - drone.items
-        # assert(self.items >= amt)
-        # self.items -= amt
         drone.items += amt
     
 
@@ -666,14 +664,8 @@ class DVRP(object):
         self.drones = drones
         self.map_size = map_size
         
-        # record the all the customers who have been visited by all the vehicles, eg. [Customer1, Customer2, ..., Customer7, Customer8]
-        # self.truck_init = copy.deepcopy(trucks)
-        # self.drone_init = copy.deepcopy(drones)
-        # record the unvisited customers, eg. [Customer9, Customer10]
         self.destroyed_nodes = []
         self.destroyed_idx = []
-
-
 
 
     def split_route(self):
@@ -698,14 +690,12 @@ class DVRP(object):
                     test_drone = drone.check_cust(cust)
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 1
-                    # print('mtd 1 drone',drone.id,' time', drone_time)
                     
                 # 2. drone- warehouse - cust- truck check  
                 elif drone.check_wh(self.warehouses).check_cust(cust).check_truck(self.trucks).evaluate():
                     test_drone = drone.check_wh(self.warehouses).check_cust(cust)
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 2
-                    # print('mtd 2 drone', drone.id,' time', drone_time)
 
                 # 3. drone - truck - cust- truck check
                 elif drone.check_truck(self.trucks).check_cust(cust).check_truck(self.trucks).evaluate():
@@ -713,7 +703,6 @@ class DVRP(object):
                     trgt_truck = test_drone.target_truck
                     drone_time = test_drone.drone.visited_points[-1][2]
                     mtd = 3
-                    # print('mtd 3 drone', drone.id, 'time', drone_time)
                 
                 if drone_time < best_drone_time:
                     best_drone_time = drone_time
@@ -721,7 +710,10 @@ class DVRP(object):
                     best_drone = drone
                     best_mtd=  mtd
                     
+<<<<<<< Updated upstream
             mtd_cnt = 0
+=======
+>>>>>>> Stashed changes
             if best_drone_time < 1e3:
                 if best_mtd == 1:
                     best_drone.travel_to(best_check.target_cust)
@@ -753,7 +745,6 @@ class DVRP(object):
             direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
             best_truck.travel_to(cust,direction)
             best_truck.serve_customer(cust)
-            # print('cust',cust.id, 'served by truck', best_truck.id)
 
     def restart(self):
         for c in self.customers:
@@ -770,7 +761,102 @@ class DVRP(object):
             t.travel_turn = 0
         self.destroyed_nodes = []
 
+<<<<<<< Updated upstream
                   
+=======
+    def restart_drone(self):
+        for c in self.customers:
+            if not c.serve_by_truck:
+                c.turn_served = 1e3
+        for d in self.drones:
+            d.visited_points = [(d.start_node.x, d.start_node.y, 0)]
+            d.battery_level = d.battery_capacity
+            d.items = d.item_capacity
+            d.on_truck = False
+            d.travel_turn = 0        
+
+    def split_route_far(self):
+        ''' Future Initialization for construction heuristic'''
+        self.restart()
+
+        while any([(c.turn_served==1e3) for c in self.customers]):
+            for c in range(len(self.customers)):
+
+                if self.customers[c].serve_by_truck:
+                    continue
+
+                cust = self.customers[c]
+
+                # drone checks
+                best_drone_time = 1e3
+                best_mtd = 0
+                
+                for d in range(len(self.drones)):
+                    drone = self.drones[d]
+                    if cust.demand > drone.item_capacity:
+                        break
+
+                    drone_time = 1e3
+                    # 1. drone cust-truck check
+                    if drone.check_cust(cust).check_truck(self.trucks).evaluate():
+                        test_drone = drone.check_cust(cust)
+                        drone_time = test_drone.drone.visited_points[-1][2]
+                        mtd = 1
+                        
+                    # 2. drone- warehouse - cust- truck check  
+                    elif drone.check_wh(self.warehouses).check_cust(cust).check_truck(self.trucks).evaluate():
+                        test_drone = drone.check_wh(self.warehouses).check_cust(cust)
+                        drone_time = test_drone.drone.visited_points[-1][2]
+                        mtd = 2
+
+                    # 3. drone - truck - cust- truck check
+                    elif drone.check_truck(self.trucks).check_cust(cust).check_truck(self.trucks).evaluate():
+                        test_drone = drone.check_truck(self.trucks).check_cust(cust)
+                        trgt_truck = test_drone.target_truck
+                        drone_time = test_drone.drone.visited_points[-1][2]
+                        mtd = 3
+                    
+                    if drone_time < best_drone_time:
+                        best_drone_time = drone_time
+                        best_check = test_drone
+                        best_drone = drone
+                        best_mtd=  mtd
+                
+                if best_drone_time < 1e3:
+                    if best_mtd == 1:
+                        best_drone.travel_to(best_check.target_cust)
+                        best_drone.serve_customer(best_check.target_cust)
+                    if best_mtd == 2:
+                        best_drone.travel_to(best_check.target_wh)
+                        best_drone.replenish_inve()
+                        best_drone.travel_to(best_check.target_cust)
+                        best_drone.serve_customer(best_check.target_cust)
+                    if best_mtd == 3:
+                        best_drone.travel_to(Point(best_check.target_truck_location[0],best_check.target_truck_location[1]))
+                        best_drone.wait(best_check.target_truck_location)
+                        best_check.target_truck.charge_to(best_drone, best_drone.battery_capacity)
+                        best_drone.replenish_inve()
+                        best_drone.travel_to(best_check.target_cust)
+                        best_drone.serve_customer(best_check.target_cust)                   
+                    continue
+                
+                # truck checks    
+                best_truck_time = 1e7
+                for truck in self.trucks:
+                    
+                    time = truck.time_to_point(cust)
+                    if time < best_truck_time:
+                        best_truck_time = time
+                        best_truck = truck
+                
+                direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
+                best_truck.travel_to(cust,direction)
+                best_truck.serve_customer(cust)
+                cust.serve_by_truck = True
+                self.restart_drone()
+                if c != len(self.customers)-1:
+                    break
+>>>>>>> Stashed changes
             
     def random_initialize(self, seed=None):
         ''' Randomly initialize the state with split_route() (your construction heuristic)
@@ -785,9 +871,26 @@ class DVRP(object):
             random.seed(606)
         random.shuffle(self.customers)
         self.split_route()
+<<<<<<< Updated upstream
+=======
+        return self.objective()
+    
+    def random_initialize_far(self, seed=None):
+        ''' Randomly initialize the state with split_route() (your construction heuristic)
+        Args:
+            seed::int
+                random seed
+        Returns:
+            objective::float
+                objective value of the state
+        '''
+        if seed is not None:
+            random.seed(606)
+        random.shuffle(self.customers)
+        self.split_route_far()
+>>>>>>> Stashed changes
         return self.objective()
         
-
         
     def objective(self):
         ''' Calculate the objective value of the state
@@ -795,117 +898,4 @@ class DVRP(object):
         '''
         return sum([c.turn_served for c in self.customers])
 
-
-    # def charge_required(source, dest):
-    #     '''Check charge or time required to travel from one point to another
-    #         Args:
-    #             source::Tuple (x,y)
-    #                 (x,y) coordinate of starting point
-    #             dest::Tuple (x,y)
-    #                 (x,y) coordinate of destination point               
-    #         '''
-    #     charge_req = 0
-    #     source_x, source_y = source
-    #     dest_x, dest_y = dest
-
-    #     direct_line = (dest_x == source_x or dest_y == source_y)
-        
-    #     while not direct_line:
-    #         source_x += 1 if source_x < dest_x else -1
-    #         source_y += 1 if source_y < dest_y else -1
-    #         charge_req += 1       
-
-    #         direct_line = (dest_x== source_x or dest_y == source_y)
-
-    #     direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))
-    #     while not direct_diag:
-    #         if abs(dest_x-source_x) > abs(dest_y-source_y):
-    #             source_x += 1 if source_x < dest_x else -1
-    #         else:
-    #             source_y += 1 if source_y < dest_y else -1     
-    #         charge_req += 1          
-    #         direct_diag = (abs(dest_x-source_x) == abs(dest_y-source_y))    
-
-    #     return charge_req
-
-    # def drone_cust_check(drone, customer, dvrp, item_or_charge):
-    #     '''Check possible charging points for drone after visiting a potential customer
-    #         Args:
-    #             drone:: Drone object
-    #             customer:: Potential customer object
-    #             dvrp:: entire current dvrp (if dvrp has charging_route_lst then just need charging route list)  
-    #             item_or_change:: binary value, 0 if checking where to replinish item , 1 if checking where to recharge
-    #     '''
-        
-    #     x,y,current_t = customer.x, customer.y, drone.visited_points[-1][2]
-    #     low_x = max(0,x - drone.battery_level)
-    #     high_x = x+ drone.battery_level
-
-    #     low_y = max(0,y- drone.battery_level)
-    #     high_y =y + drone.battery_level   
-        
-    #     charging_locs = [] #should add a method in dvrp list of all warehouses and truck travelled route then no need keep calc
-    #     for w in dvrp.warehouses:
-    #         charging_locs.append((w.x,w.y,-1))
-    #     for t in dvrp.trucks:
-    #         for pt in t.visited_points:
-    #             charging_locs.append((pt[0],pt[1],pt[2]))
-                
-    #     time_to_cust = charge_required((drone.visited_points[-1][0],drone.visited_points[-1][1]),(x,y))
-
-    #     possible_pts = []
-    #     for loc in charging_locs:
-    #         if loc[2] == -1:
-    #             if item_or_charge == 0:
-    #                 if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y):
-    #                     possible_pts.append(loc)
-    #             else: 
-    #                 continue
-    #         else:
-    #             extra_time = charge_required((x,y),(loc[0],loc[1]))
-    #             if (loc[0] >= low_x) & (loc[0]<= high_x) & (loc[1]>= low_y) & (loc[1] <= high_y) & ((current_t+time_to_cust+extra_time) == loc[2]):
-    #                 possible_pts.append(loc)
-    #     return possible_pts 
-
-                # for point in best_check.drone.visited_points:
-                #     if point[2]> best_drone.travel_turn:
-                #         best_drone.travel_to(Point(point[0],point[1]),diagonal_first = True)
-                        
-                        
-                #         if (best_mtd == 2) & (mtd_cnt ==1): #warehouse point
-                #             best_drone.replenish_inve()
-                #         if (best_mtd == 3) & (mtd_cnt ==1): # first truck 
-                #             #if drone reaches truck , wait till truck arrives, refill inve, charge_to
-                #             best_drone.wait((point[0],point[1],point[2]))
-                #             trgt_truck.charge_to(best_drone, best_drone.battery_capacity) #CURRENTLY TRGT_TRUCK IS A DRONE NEED TO CHANGE TO THE CHARGING TRUCK
-                #             best_drone.replenish_inve()
-                #         mtd_cnt +=1
-                        
-
-                        
-                # print('cust', cust.id, 'served by drone', best_drone.id, 'mtd', best_mtd, 'cust.x,cust.y', (cust.x,cust.y), 'drone loc', (best_drone.visited_points[-1][0],best_drone.visited_points[-1][1]))
-
-                # best_drone.serve_customer(cust)
-
-        # def initialize(self):
-    #     ''' Initialize the state with construction heuristic
-    #     Evenly distribute customers to each truck if sufficient capacity, restock otherwise
-    #     Truck returns to starting warehouse after all customers served
-    #     Returns:
-    #         objective::float
-    #             objective value of the state
-    #     '''
-    #     while self.customer_unvisited != []:
-    #         for t in self.trucks:
-    #             cust = self.customer_unvisited[0]
-    #             if t.items >= cust.demand:
-    #                 t.travel_to(Point(cust.x, cust.y), False)
-    #                 t.serve_customer(cust)
-    #                 self.customer_visited.append(self.customer_unvisited.remove(cust))
-    #             else:
-    #                 t.travel_to(Point(t.start_node.x, t.start_node.y), False)
-    #                 t.items = t.item_capacity
-    #     for t in self.trucks:
-    #         t.travel_to(Point(t.start_node.x, t.start_node.y), False)
-    #     return self.objective()
 

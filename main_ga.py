@@ -7,9 +7,12 @@ random.seed(606)
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
+<<<<<<< Updated upstream
         print('population id:')
         for custom in population[i]:
             print(custom.id)
+=======
+>>>>>>> Stashed changes
         dvrp1 = copy.deepcopy(dvrp)
         dvrp1.customers = population[i]
         dvrp1.split_route();
@@ -134,35 +137,60 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
     pop = initialPopulation(popSize, population)
     print("Initial Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
     progress = []
+<<<<<<< Updated upstream
     progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
     for i in range(0, generations):
         pop = nextGeneration(pop, eliteSize, mutationRate, otherParamters)
         progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
     
     print("Final Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+=======
+    progress.append(1 / popRanked[0][1])
+    
+    best_result = 1e7
+    gen_taken = 0
+    for i in range(0, generations):
+        print('start generations:', i+1)
+        pop1 = copy.deepcopy(pop)
+
+        pop,popRanked = nextGeneration(pop, eliteSize, mutationRate, dvrp)
+        progress.append(1 / popRanked[0][1])
+        
+        if 1/popRanked[0][1] < best_result:
+            bestRouteIndex = popRanked[0][0]
+            bestRoute = copy.deepcopy(pop1[bestRouteIndex])
+            best_result = 1/popRanked[0][1]
+            
+>>>>>>> Stashed changes
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
+<<<<<<< Updated upstream
     bestRouteIndex = rankRoutes(pop, otherParamters)[0][0]
     bestRoute = pop[bestRouteIndex]
     return bestRoute
 
+=======
+    dvrp1 = copy.deepcopy(dvrp)
+    dvrp1.customers = bestRoute
+    dvrp1.split_route()
+    return dvrp1
+>>>>>>> Stashed changes
 
 
 if __name__ == '__main__':
     # instance file and random seed
     config_file = "config.ini"
-    data_type = "data-complex"
+    data_type = "data-medium"
     
     # # load data and random seed
     parsed = Parser(config_file, data_type)
     
     dvrp = DVRP(parsed.warehouses, parsed.customers, parsed.trucks, parsed.drones, parsed.map_size)
-
-
     start = time.time()
 
+<<<<<<< Updated upstream
     
     bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,otherParamters=dvrp)
     
@@ -173,6 +201,15 @@ if __name__ == '__main__':
         print(custom.id)
 
 
+=======
+    random.seed(606)
+    dvrp = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=2, mutationRate=0.05, generations=4, dvrp=dvrp, start_time=start, ind=0)
+    
+    end = time.time()
+    print('Running Time: ',end - start)
+    print("Best Service Time:", dvrp.objective())
+    draw_animated_output(dvrp)
+>>>>>>> Stashed changes
     
 
 
