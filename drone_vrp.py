@@ -150,6 +150,7 @@ class Customer(Node):
         super(Customer, self).__init__(id, type, x, y)
         self.demand = demand
         self.turn_served = 1e3
+        self.serve_by_truck = False
         
     def __str__(self):
         return 'Node id: {}, type: {}, x: {}, y: {}, demand: {}, turn_served: {}'.format(self.id, self.type, self.x, self.y, self.demand, self.turn_served)
@@ -710,13 +711,6 @@ class DVRP(object):
                     best_drone = drone
                     best_mtd=  mtd
                     
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            mtd_cnt = 0
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             if best_drone_time < 1e3:
                 if best_mtd == 1:
                     best_drone.travel_to(best_check.target_cust)
@@ -743,8 +737,7 @@ class DVRP(object):
                 if time < best_truck_time:
                     best_truck_time = time
                     best_truck = truck
-            
-                    
+             
             direction = best_truck.vert_hor(self.customers[c:], cust, self.drones[0])
             best_truck.travel_to(cust,direction)
             best_truck.serve_customer(cust)
@@ -752,21 +745,19 @@ class DVRP(object):
     def restart(self):
         for c in self.customers:
             c.turn_served = 1e3
+            c.serve_by_truck = False
         for d in self.drones:
             d.visited_points = [(d.start_node.x, d.start_node.y, 0)]
             d.battery_level = d.battery_capacity
             d.items = d.item_capacity
             d.on_truck = False
-            d.travel_turn =0
+            d.travel_turn = 0
         for t in self.trucks:
             t.visited_points = [(t.start_node.x, t.start_node.y, 0)]
             t.half_turn = False
             t.travel_turn = 0
         self.destroyed_nodes = []
 
-<<<<<<< Updated upstream
-                  
-=======
     def restart_drone(self):
         for c in self.customers:
             if not c.serve_by_truck:
@@ -859,10 +850,6 @@ class DVRP(object):
                 self.restart_drone()
                 if c != len(self.customers)-1:
                     break
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             
     def random_initialize(self, seed=None):
         ''' Randomly initialize the state with split_route() (your construction heuristic)
@@ -877,11 +864,6 @@ class DVRP(object):
             random.seed(606)
         random.shuffle(self.customers)
         self.split_route()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
         return self.objective()
     
     def random_initialize_far(self, seed=None):
@@ -897,7 +879,6 @@ class DVRP(object):
             random.seed(606)
         random.shuffle(self.customers)
         self.split_route_far()
->>>>>>> Stashed changes
         return self.objective()
         
         
