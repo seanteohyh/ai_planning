@@ -15,13 +15,14 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
+import time
 
 
 def draw_animated_output(dvrp):
     width = dvrp.map_size[0]
     height = dvrp.map_size[1]
     fig = plt.figure() 
-    ax = plt.axes(xlim=(-5, width+5), ylim=(-5, height+5))
+    ax = plt.axes(xlim=(-1, width+1), ylim=(-1, height+1))
     max_frames = max([c.turn_served for c in dvrp.customers])+2
     
     # scatter plot for warehouses
@@ -97,7 +98,7 @@ def draw_animated_output(dvrp):
         return lines
 
     anim = animation.FuncAnimation(fig, animate_drones, init_func=init, 
-							frames=max_frames, interval=50, blit=True)
+							frames=max_frames, interval=100, blit=True)
     
     # %matplotlib gt
     plt.show() 
@@ -122,12 +123,40 @@ def randomDestroy(current, random_state):
         destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
         destroyed.destroyed_idx.append(idx)
     else:
+        # for _ in range(round(len(destroyed.customers)*0.2)):
+        for _ in range(1):
+            idx = random_state.randint(0,len(destroyed.customers))
+
+            destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
+            destroyed.destroyed_idx.append(idx)
+    return destroyed
+
+def randomDestroyMany(current, random_state):
+    ''' randomly destroys 20% of customer nodes. Remove 1 only if there are less than 5 customers.
+    Args:
+        current::DVRP
+            an DVRP object before destroying
+        random_state::numpy.random.RandomState
+            a random state specified by the random seed
+    Returns:
+        destroyed::DVRP
+            the evrp object after destroying
+    '''
+    # You should code here
+    destroyed = copy.deepcopy(current)
+    if round(len(destroyed.customers)) < 5:
+        idx = random_state.randint(0,len(destroyed.customers))
+
+        destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
+        destroyed.destroyed_idx.append(idx)
+    else:
         for _ in range(round(len(destroyed.customers)*0.2)):
             idx = random_state.randint(0,len(destroyed.customers))
 
             destroyed.destroyed_nodes.append(destroyed.customers.pop(idx))
             destroyed.destroyed_idx.append(idx)
     return destroyed
+
 
 def greedyDestroy(current, random_state):
     ''' Greedily destroys the customer which gives the biggest reduction in total distance of the perturbed tour
@@ -228,18 +257,13 @@ def nearidxRepair(destroyed, random_state):
 
     repaired.split_route()
     return repaired
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                
-=======
               
->>>>>>> Stashed changes
-=======
-              
->>>>>>> Stashed changes
 
 
 if __name__ == '__main__':
+
+    start_time = time.time()
+
     # instance file and random seed
     config_file = "config.ini"
     data_type = "data-medium"
@@ -259,43 +283,32 @@ if __name__ == '__main__':
     # add destroy
     alns.add_destroy_operator(randomDestroy)
     alns.add_destroy_operator(greedyDestroy)
+    alns.add_destroy_operator(randomDestroyMany)
     # add repair
     alns.add_repair_operator(randomRepair)
     alns.add_repair_operator(greedyRepair)
-    # alns.add_repair_operator(nearidxRepair)
+    alns.add_repair_operator(nearidxRepair)
     
     # run ALNS
     # select cirterion
     # criterion = HillClimbing()
-    criterion = SimulatedAnnealing(10000, 100, 100)
+    criterion = SimulatedAnnealing(9, 1, 0.1)
 
     # assigning weights to methods
-    omegas = [5.0, 3.0, 0.5, 0]
-    lambda_ = 0.6
+    omegas = [5.0, 1.0, 0.5, 0.1]
+    lambda_ = 0.8
     result = alns.iterate(dvrp, omegas, lambda_, criterion,
-                          iterations=1, collect_stats=True)
-
+                          iterations=200, collect_stats=True)
+    result.plot_objectives()
+    result.plot_operator_counts()
     # result
     solution = result.best_state
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    objective = solution.objective()
-=======
     objective = solution.objective() 
->>>>>>> Stashed changes
-=======
-    objective = solution.objective() 
->>>>>>> Stashed changes
     print('Initial objective is {}.'.format(initial_objective))    
     print('Best heuristic objective is {}.'.format(objective))
+    print("--- %s seconds ---" % (time.time() - start_time))
+
     draw_animated_output(solution)
-<<<<<<< Updated upstream
-        
-=======
     
     
     
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
