@@ -7,6 +7,8 @@ How to run the code: All files needs to be placed in same folder. The code can b
 
 <i.e: python main_ga.py>
 
+
+
 There's 3 main files for 3 types of Algorithm
 1) main_ga.py
 2) main_alns.py
