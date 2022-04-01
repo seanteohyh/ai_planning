@@ -1,7 +1,7 @@
 from main_alns import draw_animated_output
 from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
-import time
+import time 
 
 def PrintCustomers(customers):
     s = "("
