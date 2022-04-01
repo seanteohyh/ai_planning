@@ -4,8 +4,7 @@ Project Source
 https://www.kaggle.com/c/hashcode-drone-delivery/overview
 
 How to run the code: All files needs to be placed in same folder. The code can be run from console or from any IDE directly.
-
-<i.e: python main_ga.py>
+(i.e: python main_ga.py)
 
 
 
