@@ -13,5 +13,4 @@ There's 3 main files for 3 types of Algorithm
 2) main_alns.py
 3) main_alns_farsight.py
 
-By default, the code is configured to run "data-medium" dataset within "config.ini"
-This can be configured to "DEFAULT", "data-medium", "data-complex" for different levels of complexity. 
+By default, the code is configured to run "data-medium" dataset within "config.ini". This can be configured to "DEFAULT", "data-medium", "data-complex" for different levels of complexity. 
