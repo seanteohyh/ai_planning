@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Mar 14 22:30:05 2022
-@author: ivanl
+@author: ivanl 
 """
 
 from numpy import diag
