@@ -1,6 +1,6 @@
 Readme for AI Planning Project 
 
-Project Source
+Project inspired by
 https://www.kaggle.com/c/hashcode-drone-delivery/overview
 
 How to run the code: All files needs to be placed in same folder. The code can be run from from any IDE directly or from console.
