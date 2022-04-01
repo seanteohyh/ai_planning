@@ -14,4 +14,4 @@ There's 3 main files for 3 types of Algorithm
 By default, the code is configured to run "data-medium" dataset within "config.ini". This can be configured to "DEFAULT", "data-medium" or "data-complex" for different levels of complexity. 
 
 There is an animation in the final output to display the results. The animation works well with VSCode.
-For Spyder and Jupyter Notebook, would need to uncomment "%matplotlib gt" in main_alns.py.
+For Spyder and Jupyter Notebook, need to uncomment "%matplotlib gt" in main_alns.py.
