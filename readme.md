@@ -3,7 +3,7 @@ Readme for AI Planning Project
 Project Source
 https://www.kaggle.com/c/hashcode-drone-delivery/overview
 
-How to run the code: All files needs to be placed in same folder. The code can be run from console or from any IDE directly.
+How to run the code: All files needs to be placed in same folder. The code can be run from from any IDE directly or from console.
 (i.e python main_ga.py)
 
 There's 3 main files for 3 types of Algorithm
