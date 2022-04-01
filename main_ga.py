@@ -3,21 +3,19 @@ from drone_vrp import *
 import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
 import time
 
-random.seed(606)
+def PrintCustomers(customers):
+    s = "("
+    for custom in customers:
+        s+=str(custom.id) + ', '
+    s= s[0:-2]+")"
+    return s;
+
+
 def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        print('population id:')
-        for custom in population[i]:
-            print(custom.id)
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         dvrp1 = copy.deepcopy(dvrp)
-        dvrp1.customers = population[i]
+        dvrp1.customers = copy.deepcopy(population[i])
         dvrp1.split_route();
         fitnessResults[i] = 1/dvrp1.objective()
     return sorted(fitnessResults.items(), key = operator.itemgetter(1), reverse = True)
@@ -27,7 +25,6 @@ Description: Main method of GA
 Reference: 
 https://levelup.gitconnected.com/how-to-implement-a-traveling-salesman-problem-genetic-algorithm-in-python-ea32c7bef20f
 https://github.com/rocreguant/personal_blog/blob/main/Genetic_Algorithm_Python_Example/Traveling_Salesman_Problem.ipynb
-
 '''
 
 ## Create our initial population
@@ -132,22 +129,16 @@ def nextGeneration(currentGen, eliteSize, mutationRate, otherParamters):
     matingpool = matingPool(currentGen, selectionResults)
     children = breedPopulation(matingpool, eliteSize)
     nextGeneration = mutatePopulation(children, mutationRate)
-    return nextGeneration
+    return nextGeneration,popRanked
 
 #Final step: create the genetic algorithm
-def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, otherParamters):
-    print(population)
+def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, dvrp, start_time, ind):
+    start_time = time.time()
     pop = initialPopulation(popSize, population)
-    print("Initial Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
+    popRanked = rankRoutes(pop, dvrp);
+
+    print("Initial Service Time: " + str(1 / popRanked[0][1]))
     progress = []
-<<<<<<< Updated upstream
-    progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
-    for i in range(0, generations):
-        pop = nextGeneration(pop, eliteSize, mutationRate, otherParamters)
-        progress.append(1 / rankRoutes(pop, otherParamters)[0][1])
-    
-    print("Final Service Time: " + str(1 / rankRoutes(pop, otherParamters)[0][1]))
-=======
     progress.append(1 / popRanked[0][1])
     
     best_result = 1e7
@@ -164,31 +155,14 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
             bestRoute = copy.deepcopy(pop1[bestRouteIndex])
             best_result = 1/popRanked[0][1]
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    bestRouteIndex = rankRoutes(pop, otherParamters)[0][0]
-    bestRoute = pop[bestRouteIndex]
-    return bestRoute
-
-=======
-=======
->>>>>>> Stashed changes
     dvrp1 = copy.deepcopy(dvrp)
     dvrp1.customers = bestRoute
     dvrp1.split_route()
     return dvrp1
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 
 if __name__ == '__main__':
@@ -201,22 +175,7 @@ if __name__ == '__main__':
     
     dvrp = DVRP(parsed.warehouses, parsed.customers, parsed.trucks, parsed.drones, parsed.map_size)
     start = time.time()
-<<<<<<< Updated upstream
 
-<<<<<<< Updated upstream
-    
-    bestRoute = geneticAlgorithm(population=dvrp.customers, popSize=100, eliteSize=10, mutationRate=0.01, generations=10,otherParamters=dvrp)
-    
-    end = time.time()
-    print('running time: ',end - start)
-    print ('bestRoute: ')
-    for custom in bestRoute:
-        print(custom.id)
-
-=======
->>>>>>> Stashed changes
-
-=======
     random.seed(606)
     dvrp = geneticAlgorithm(population=dvrp.customers, popSize=20, eliteSize=2, mutationRate=0.05, generations=4, dvrp=dvrp, start_time=start, ind=0)
     
@@ -224,11 +183,4 @@ if __name__ == '__main__':
     print('Running Time: ',end - start)
     print("Best Service Time:", dvrp.objective())
     draw_animated_output(dvrp)
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     
-
-
-
