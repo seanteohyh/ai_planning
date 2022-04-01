@@ -8,9 +8,12 @@ def rankRoutes(population, dvrp):
     fitnessResults = {}
     for i in range(0,len(population)):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         print('population id:')
         for custom in population[i]:
             print(custom.id)
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         dvrp1 = copy.deepcopy(dvrp)
@@ -161,21 +164,30 @@ def geneticAlgorithm(population, popSize, eliteSize, mutationRate, generations, 
             bestRoute = copy.deepcopy(pop1[bestRouteIndex])
             best_result = 1/popRanked[0][1]
             
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     plt.plot(progress)
     plt.ylabel('Service Time')
     plt.xlabel('Generation')
     plt.show()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     bestRouteIndex = rankRoutes(pop, otherParamters)[0][0]
     bestRoute = pop[bestRouteIndex]
     return bestRoute
 
 =======
+=======
+>>>>>>> Stashed changes
     dvrp1 = copy.deepcopy(dvrp)
     dvrp1.customers = bestRoute
     dvrp1.split_route()
     return dvrp1
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 
@@ -189,6 +201,7 @@ if __name__ == '__main__':
     
     dvrp = DVRP(parsed.warehouses, parsed.customers, parsed.trucks, parsed.drones, parsed.map_size)
     start = time.time()
+<<<<<<< Updated upstream
 
 <<<<<<< Updated upstream
     
@@ -200,6 +213,8 @@ if __name__ == '__main__':
     for custom in bestRoute:
         print(custom.id)
 
+=======
+>>>>>>> Stashed changes
 
 =======
     random.seed(606)
@@ -209,6 +224,9 @@ if __name__ == '__main__':
     print('Running Time: ',end - start)
     print("Best Service Time:", dvrp.objective())
     draw_animated_output(dvrp)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     
 

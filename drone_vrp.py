@@ -711,7 +711,10 @@ class DVRP(object):
                     best_mtd=  mtd
                     
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             mtd_cnt = 0
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             if best_drone_time < 1e3:
@@ -856,6 +859,9 @@ class DVRP(object):
                 self.restart_drone()
                 if c != len(self.customers)-1:
                     break
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             
     def random_initialize(self, seed=None):
@@ -872,7 +878,10 @@ class DVRP(object):
         random.shuffle(self.customers)
         self.split_route()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
         return self.objective()
     
     def random_initialize_far(self, seed=None):

@@ -229,7 +229,11 @@ def nearidxRepair(destroyed, random_state):
     repaired.split_route()
     return repaired
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 
+=======
+              
+>>>>>>> Stashed changes
 =======
               
 >>>>>>> Stashed changes
@@ -274,7 +278,11 @@ if __name__ == '__main__':
     # result
     solution = result.best_state
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     objective = solution.objective()
+=======
+    objective = solution.objective() 
+>>>>>>> Stashed changes
 =======
     objective = solution.objective() 
 >>>>>>> Stashed changes
@@ -287,4 +295,7 @@ if __name__ == '__main__':
     
     
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
